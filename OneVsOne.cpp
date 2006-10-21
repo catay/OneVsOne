@@ -4,12 +4,13 @@
 #include <map>
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include "bzfsAPI.h"
 #include <time.h>
 
 BZ_GET_PLUGIN_VERSION
 
-#define ONEVSONE "1.00.00"
+#define ONEVSONE "1.0.1"
 
 #define MAX_PLAYERS 2
 
@@ -44,6 +45,7 @@ class OneVsOne : public bz_EventHandler, public bz_CustomSlashCommandHandler
 
 OneVsOne oneVsOne;
 
+
 void printScore ( void )
 {
 	bz_debugMessagef ( DEBUG_LEVEL,"%s START printScore", DEBUG_TAG );	
@@ -62,6 +64,32 @@ void printScore ( void )
 
 	bz_debugMessagef ( DEBUG_LEVEL,"%s END printScore",DEBUG_TAG);	
 }
+
+void printBanner ( int winner, int loser )
+{
+
+ 	// this makes sure that if only 1 player is playing, that player
+	// always gets the 'you lose' banner.
+
+	if ( Players.size() == MAX_PLAYERS ) {
+
+		bz_sendTextMessagef ( BZ_SERVER, winner,"                              .__ ");
+		bz_sendTextMessagef ( BZ_SERVER, winner," ___.__. ____  __ __  __  _  _|__| ____ ");
+		bz_sendTextMessagef ( BZ_SERVER, winner,"<   |  |/  _ \\|  |  \\ \\ \\/ \\/ /  |/    \\ ");
+		bz_sendTextMessagef ( BZ_SERVER, winner," \\___  (  <_> )  |  /  \\     /|  |   |  \\ ");
+		bz_sendTextMessagef ( BZ_SERVER, winner," / ____|\\____/|____/    \\/\\_/ |__|___|  / ");
+		bz_sendTextMessagef ( BZ_SERVER, winner," \\/                                   \\/ ");
+	}
+	
+	bz_sendTextMessagef ( BZ_SERVER, loser,"                      .__");
+	bz_sendTextMessagef ( BZ_SERVER, loser," ___.__. ____  __ __  |  |   ____  ______ ____");
+	bz_sendTextMessagef ( BZ_SERVER, loser,"<   |  |/  _ \\|  |  \\ |  |  /  _ \\/  ___// __ \\ ");
+	bz_sendTextMessagef ( BZ_SERVER, loser," \\___  (  <_> )  |  / |  |_(  <_> )___ \\\\  ___/");
+	bz_sendTextMessagef ( BZ_SERVER, loser," / ____|\\____/|____/  |____/\\____/____  >\\___  >");
+	bz_sendTextMessagef ( BZ_SERVER, loser," \\/                                   \\/     \\/");
+
+}
+
 
 void addPlayer ( int playerId, const char *callsign ) 
 {
@@ -89,9 +117,24 @@ void setLoss( int playerId )
 {
 	bz_debugMessagef ( DEBUG_LEVEL,"%s START setLoss :: %d", DEBUG_TAG, playerId );	
 
+	
 	Players[playerId].losses++;
 
 	bz_debugMessagef ( DEBUG_LEVEL,"%s END setLoss :: %d", DEBUG_TAG, playerId );	
+}
+
+int getHighestLoss() 
+{
+
+	int highestLoss=-1;
+
+	std::map<int,OneVsOnePlayer>::iterator it = Players.begin(), stop = Players.end();
+	for( ; it != stop; it++ ) { 
+		if ( (*it).second.losses > highestLoss ) 
+			highestLoss = (*it).second.losses;
+	}
+
+	return highestLoss;
 }
 
 int getWinner( int playerId )
@@ -101,6 +144,7 @@ int getWinner( int playerId )
 	int winner=-1;
 
 	if ( Players[playerId].losses == LIFES ) {
+	//if ( Players[playerId].losses >= LIFES ) {
 
 			if ( Players.size() == 1 ) {
 					winner=playerId;
@@ -109,6 +153,7 @@ int getWinner( int playerId )
 					std::map<int,OneVsOnePlayer>::iterator it = Players.begin(), stop = Players.end();
 					for( ; it != stop; it++ ) { 
 						if ( (*it).second.losses != LIFES ) { 
+						//if ( (*it).second.losses < LIFES ) { 
 							winner = (*it).first;
 							break;
 						}
@@ -275,29 +320,34 @@ void OneVsOne::process ( bz_EventData *eventData )
 
 		bz_debugMessagef ( DEBUG_LEVEL,"%s START EVENT :: bz_ePlayerDieEvent", DEBUG_TAG );	
 
-		bz_PlayerDieEventData *dieData = (bz_PlayerDieEventData*)eventData;	
+		if ( !Players.empty () ) {
 
-		setLoss(dieData->playerID);
+			bz_PlayerDieEventData *dieData = (bz_PlayerDieEventData*)eventData;	
 
-		printScore();
+			setLoss(dieData->playerID);
 
-		if (getWinner(dieData->playerID) != -1) {
+			printScore();
 
-			int loser=dieData->playerID;
-			int winner=getWinner(dieData->playerID);
+			if (getWinner(dieData->playerID) != -1) {
 
-			bz_gameOver (winner, -1);
+				int loser=dieData->playerID;
+				int winner=getWinner(dieData->playerID);
 
-			if (officialMatch()) 
-				logRecordMatch("official",winner,loser);
+				bz_gameOver (winner, -1);
+
+				printBanner(winner, loser);
+
+				if (officialMatch()) 
+					logRecordMatch("official",winner,loser);
+
+				if (contestMatch()) 
+					logRecordMatch("contest",winner,loser);
 
 
-			if (contestMatch()) 
-				logRecordMatch("contest",winner,loser);
-
-			// remove all players from the list
-			delPlayer ( loser );
-			delPlayer ( winner );
+				// remove all players from the list
+				delPlayer ( loser );
+				delPlayer ( winner );
+			}
 		}
 
 		bz_debugMessagef ( DEBUG_LEVEL,"%s END EVENT :: bz_ePlayerDieEvent", DEBUG_TAG );	
@@ -325,7 +375,7 @@ void OneVsOne::process ( bz_EventData *eventData )
 
 }
 
-bool OneVsOne::handle ( int playerID, bzApiString cmd, bzApiString, bzAPIStringList* /*cmdParams*/ )
+bool OneVsOne::handle ( int playerID, bzApiString cmd, bzApiString, bzAPIStringList* cmdParams )
 {
 
 	if ( strcasecmp ( cmd.c_str(), "official") == 0 ) {
@@ -420,6 +470,44 @@ bool OneVsOne::handle ( int playerID, bzApiString cmd, bzApiString, bzAPIStringL
 		return true;
 	}
 
+	if ( strcasecmp ( cmd.c_str(), "setlifes" ) == 0) {
+
+		if (! bz_hasPerm(playerID,"SETLIFES")) {
+        	bz_sendTextMessagef (BZ_SERVER, playerID, "You do not have permission to run the setlifes command");
+        	return true;
+ 	 	}
+
+		if ( cmdParams->size() == 1 ) {
+			
+			int lifes = 0;
+			std::istringstream iss(cmdParams->get(0).c_str());
+
+			if (( iss >> lifes)) {
+
+				bz_PlayerRecord *playerRecord;
+
+	  			playerRecord = bz_getPlayerByIndex ( playerID );
+
+				if ( getHighestLoss() < lifes && lifes > 0 ) {
+					LIFES=lifes;
+					bz_sendTextMessagef ( BZ_SERVER, BZ_ALLUSERS,"Life count set to %d by %s.", LIFES, playerRecord->callsign.c_str() );
+				}
+				else
+					bz_sendTextMessagef ( BZ_SERVER, playerID,"Life count should be higher then highest player hit count.");
+
+				bz_freePlayerRecord ( playerRecord );
+
+				return true;
+			}
+
+		}
+
+		bz_sendTextMessagef ( BZ_SERVER, playerID,"Usage: /setlifes <life count>" );
+
+		return true;
+	}
+
+
 	return true;
 }
 
@@ -439,6 +527,7 @@ BZF_PLUGIN_CALL int bz_Load ( const char* commandLine )
 
 	bz_registerCustomSlashCommand ("official", &oneVsOne);
 	bz_registerCustomSlashCommand ("contest", &oneVsOne);
+	bz_registerCustomSlashCommand ("setlifes", &oneVsOne);
 
 	bz_registerEvent(bz_ePlayerJoinEvent, &oneVsOne);
 	bz_registerEvent(bz_ePlayerPartEvent, &oneVsOne);
@@ -454,6 +543,7 @@ BZF_PLUGIN_CALL int bz_Unload ( void )
 {
 	bz_removeCustomSlashCommand ("official");
 	bz_removeCustomSlashCommand ("contest");
+	bz_removeCustomSlashCommand ("setlifes");
 
 	bz_removeEvent(bz_ePlayerJoinEvent, &oneVsOne);
 	bz_removeEvent(bz_ePlayerPartEvent, &oneVsOne);
