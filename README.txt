@@ -1,4 +1,4 @@
-OneVsOne plugin version 1.0.0  (August 27, 2006)
+OneVsOne plugin version 1.0.1  (October xx, 2006)
 ------------------------------------------------
 
  The OneVsOne plugin makes it possible to play
@@ -9,15 +9,15 @@ OneVsOne plugin version 1.0.0  (August 27, 2006)
 Plugin command Line:
 ====================
 
- -loadplugin PLUGINNAME[,<lifes>,<filetologscores>]
+ -loadplugin PLUGINNAME[,<lives>,<filetologscores>]
 
- parm 1 => the amount of lifes each player has
+ parm 1 => the amount of lives each player has
  parm 2 => the filename where the scores will be logged
 
- If only parm 1 (lifes) is provided , the scores will
+ If only parm 1 (lives) is provided , the scores will
  will be logged at debug level 2.
 
- If no parameters are provided, 'lifes' will default on 10
+ If no parameters are provided, 'lives' will default on 10
  and the scores will be logged at debug level 2.
 
  Example:   -loadplugin <path>/OneVsOne,5,/tmp/1vs1.log
@@ -25,13 +25,17 @@ Plugin command Line:
 In-game commands:
 =================
 
-The OneVsOne in game commands don't require any permission at  
-this time. 
+The OneVsOne plugin provides the following in-game commands.
 
  /official		: 	declares an official match (requires global
 					login)
  /contest		: 	declares a contest match (requires global
  					login)
+
+ /setlives [<max lives> | reset]	:	
+
+ The setlives command makes it possible to change live the life 
+ count on a server. This requires the SETLIVES permission.
 
  Players are also able to use the /superkill command. They
  can't use it when an official/contest match is in progress
@@ -65,6 +69,9 @@ All the official and contest matches are also recorded.
 For recording you have to specify the -recdir <dirname>
 in your bzfs config file otherwise recording won't work.
 
+Also don't put the -recbuf option in your config file,
+recording won't work if you do.
+
 The recording is named as follows : 
 
  winner[score]_loser[score]_yyyymmdd_hhmmss.bzr
@@ -89,6 +96,11 @@ Todo
 
  * Catch zelo info from the 1vs1 league site (Chestal's idea)
 
+ * The official/contest commands should not be hardcoded. 
+   It would be much nicer if it was a configuration option, that
+   way everybody can decide which /command he wants for is server
+   setup.
+
 Credits:
 ========
 
@@ -100,14 +112,27 @@ Pimpinella : the original coder of the first bzflag 1vs1
 Also thanks to all the people who helped me test it :
 (Alphabetic order)
 
-Birdie, Chestal, Karlik25, Koziol, MasterYoda, Mr_Molez, 
-Thonolan.
+Birdie, Chestal, Grumpf, Karlik25, Kierra, Koziol, MasterYoda, 
+Mr_Molez, Thonolan.
 
 Changelog:
 ==========
 
- * TimeLimit 1.0.0 (27 August 2006)
+ * OneVsOne 1.0.1 (October 2006)
 
-   - Initial release
+   - Kierra pointed me to the fact that the plural from life is 
+     lives and not lifes. Changed lifes to lives. :P
 
+   - Fixed a small bug that occured when at the end of a game
+     both players shoot eachother before the auto explode happens.
+	 Because of that a ghost playerid was added to the map. Had
+	 no impact on scores or something else whatsoever.
 
+   - Added some ascii art banners that clearly state when someone
+     wins or loses.
+
+   - Added the /setlives command.
+
+ * OneVsOne 1.0.0 (27 August 2006)
+
+   - Initial release.
