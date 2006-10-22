@@ -32,7 +32,7 @@ The OneVsOne plugin provides the following in-game commands.
  /contest		: 	declares a contest match (requires global
  					login)
 
- /setlives [<max lives> | reset]	:	
+ /setlives [<max lives>]	:	
 
  The setlives command makes it possible to change live the life 
  count on a server. This requires the SETLIVES permission.
@@ -100,6 +100,9 @@ Todo
    It would be much nicer if it was a configuration option, that
    way everybody can decide which /command he wants for is server
    setup.
+
+ * Seems not the compile on the windows platform because of 
+   strcmp/strcasecmp functions.
 
 Credits:
 ========
