@@ -28,8 +28,8 @@ std::map<int, OneVsOnePlayer> Players;
 
 bool recording=false;
 
-// default lifes 
-int LIFES=10;
+// default lives 
+int LIVES=10;
 // if "none", scores will be written to debug level 2
 char LOGFILE[512]="none";
 
@@ -52,14 +52,23 @@ void printScore ( void )
 
 	std::map<int,OneVsOnePlayer>::iterator it = Players.begin();
 
+	std::string timeMsg = "times";
+	std::string lifeMsg = "lives";
+	int hits, lives = 0;
+
 	for( ; it != Players.end(); it++ ) { 
 
-		bz_debugMessagef ( DEBUG_LEVEL, "%s key %d => %s got hit %d times, %d life(s) left", 
-						DEBUG_TAG, (*it).first, (*it).second.callsign, (*it).second.losses, LIFES - (*it).second.losses );
+		hits = (*it).second.losses;
+		lives = LIVES - (*it).second.losses;
 
-		bz_sendTextMessagef ( BZ_SERVER, BZ_ALLUSERS,"%s got hit %d times, %d life(s) left",
-						(*it).second.callsign, (*it).second.losses, LIFES - (*it).second.losses );
+		if ( hits == 1 ) timeMsg = "time"; 
+		if ( lives == 1 ) lifeMsg = "life"; 
 
+		bz_debugMessagef ( DEBUG_LEVEL, "%s key %d => %s got hit %d %s, %d %s left", 
+						DEBUG_TAG, (*it).first, (*it).second.callsign, hits, timeMsg.c_str(), lives, lifeMsg.c_str());
+
+		bz_sendTextMessagef ( BZ_SERVER, BZ_ALLUSERS,"%s got hit %d %s, %d %s left",
+						(*it).second.callsign, hits, timeMsg.c_str(), lives, lifeMsg.c_str());
 	}
 
 	bz_debugMessagef ( DEBUG_LEVEL,"%s END printScore",DEBUG_TAG);	
@@ -90,7 +99,6 @@ void printBanner ( int winner, int loser )
 
 }
 
-
 void addPlayer ( int playerId, const char *callsign ) 
 {
 	bz_debugMessagef ( DEBUG_LEVEL,"%s START addPlayer :: %d , %s", DEBUG_TAG, playerId, callsign );	
@@ -111,7 +119,6 @@ void delPlayer(int playerId)
 
 	bz_debugMessagef ( DEBUG_LEVEL,"%s END delPlayer :: %d", DEBUG_TAG, playerId );	
 }
-
 
 void setLoss( int playerId ) 
 {
@@ -143,8 +150,7 @@ int getWinner( int playerId )
 
 	int winner=-1;
 
-	if ( Players[playerId].losses == LIFES ) {
-	//if ( Players[playerId].losses >= LIFES ) {
+	if ( Players[playerId].losses == LIVES ) {
 
 			if ( Players.size() == 1 ) {
 					winner=playerId;
@@ -152,8 +158,7 @@ int getWinner( int playerId )
 			else { 
 					std::map<int,OneVsOnePlayer>::iterator it = Players.begin(), stop = Players.end();
 					for( ; it != stop; it++ ) { 
-						if ( (*it).second.losses != LIFES ) { 
-						//if ( (*it).second.losses < LIFES ) { 
+						if ( (*it).second.losses != LIVES ) { 
 							winner = (*it).first;
 							break;
 						}
@@ -166,7 +171,6 @@ int getWinner( int playerId )
 
 	return winner;
 }
-
 
 bool officialMatch( void ) 
 {
@@ -267,7 +271,6 @@ void logRecordMatch(const char * label, int winner, int loser)
 	if ( strcasecmp ( label,"contest" ) == 0 ) 
 		bz_sendTextMessagef (BZ_SERVER, BZ_ALLUSERS,"The game has been logged as a contest match");
 }
-
 
 void OneVsOne::process ( bz_EventData *eventData )
 {
@@ -470,27 +473,27 @@ bool OneVsOne::handle ( int playerID, bzApiString cmd, bzApiString, bzAPIStringL
 		return true;
 	}
 
-	if ( strcasecmp ( cmd.c_str(), "setlifes" ) == 0) {
+	if ( strcasecmp ( cmd.c_str(), "setlives" ) == 0) {
 
-		if (! bz_hasPerm(playerID,"SETLIFES")) {
-        	bz_sendTextMessagef (BZ_SERVER, playerID, "You do not have permission to run the setlifes command");
+		if (! bz_hasPerm(playerID,"SETLIVES")) {
+        	bz_sendTextMessagef (BZ_SERVER, playerID, "You do not have permission to run the setlives command");
         	return true;
  	 	}
 
 		if ( cmdParams->size() == 1 ) {
 			
-			int lifes = 0;
+			int lives = 0;
 			std::istringstream iss(cmdParams->get(0).c_str());
 
-			if (( iss >> lifes)) {
+			if (( iss >> lives)) {
 
 				bz_PlayerRecord *playerRecord;
 
 	  			playerRecord = bz_getPlayerByIndex ( playerID );
 
-				if ( getHighestLoss() < lifes && lifes > 0 ) {
-					LIFES=lifes;
-					bz_sendTextMessagef ( BZ_SERVER, BZ_ALLUSERS,"Life count set to %d by %s.", LIFES, playerRecord->callsign.c_str() );
+				if ( getHighestLoss() < lives && lives > 0 ) {
+					LIVES=lives;
+					bz_sendTextMessagef ( BZ_SERVER, BZ_ALLUSERS,"Life count set to %d by %s.", LIVES, playerRecord->callsign.c_str() );
 				}
 				else
 					bz_sendTextMessagef ( BZ_SERVER, playerID,"Life count should be higher then highest player hit count.");
@@ -502,7 +505,7 @@ bool OneVsOne::handle ( int playerID, bzApiString cmd, bzApiString, bzAPIStringL
 
 		}
 
-		bz_sendTextMessagef ( BZ_SERVER, playerID,"Usage: /setlifes <life count>" );
+		bz_sendTextMessagef ( BZ_SERVER, playerID,"Usage: /setlives <life count>" );
 
 		return true;
 	}
@@ -519,15 +522,15 @@ BZF_PLUGIN_CALL int bz_Load ( const char* commandLine )
 
 	if (cmdLine->size() == 2) {
 
-		LIFES=atoi(cmdLine->get(0).c_str());
+		LIVES=atoi(cmdLine->get(0).c_str());
 		strcpy(LOGFILE,cmdLine->get(1).c_str());
 	}
 	else if (cmdLine->size() == 1) 
-			LIFES=atoi(cmdLine->get(0).c_str());
+			LIVES=atoi(cmdLine->get(0).c_str());
 
 	bz_registerCustomSlashCommand ("official", &oneVsOne);
 	bz_registerCustomSlashCommand ("contest", &oneVsOne);
-	bz_registerCustomSlashCommand ("setlifes", &oneVsOne);
+	bz_registerCustomSlashCommand ("setlives", &oneVsOne);
 
 	bz_registerEvent(bz_ePlayerJoinEvent, &oneVsOne);
 	bz_registerEvent(bz_ePlayerPartEvent, &oneVsOne);
@@ -543,7 +546,7 @@ BZF_PLUGIN_CALL int bz_Unload ( void )
 {
 	bz_removeCustomSlashCommand ("official");
 	bz_removeCustomSlashCommand ("contest");
-	bz_removeCustomSlashCommand ("setlifes");
+	bz_removeCustomSlashCommand ("setlives");
 
 	bz_removeEvent(bz_ePlayerJoinEvent, &oneVsOne);
 	bz_removeEvent(bz_ePlayerPartEvent, &oneVsOne);
