@@ -52,8 +52,11 @@ void printScore ( void )
 
 	std::map<int,OneVsOnePlayer>::iterator it = Players.begin();
 
-	std::string timeMsg = "times";
-	std::string lifeMsg = "lives";
+	//std::string timeMsg = "times";
+	//std::string lifeMsg = "lives";
+	std::string timeMsg;
+	std::string lifeMsg;
+	
 	int hits, lives = 0;
 
 	for( ; it != Players.end(); it++ ) { 
@@ -62,7 +65,10 @@ void printScore ( void )
 		lives = LIVES - (*it).second.losses;
 
 		if ( hits == 1 ) timeMsg = "time"; 
+		else timeMsg = "times";
+
 		if ( lives == 1 ) lifeMsg = "life"; 
+		else lifeMsg = "lives";
 
 		bz_debugMessagef ( DEBUG_LEVEL, "%s key %d => %s got hit %d %s, %d %s left", 
 						DEBUG_TAG, (*it).first, (*it).second.callsign, hits, timeMsg.c_str(), lives, lifeMsg.c_str());
