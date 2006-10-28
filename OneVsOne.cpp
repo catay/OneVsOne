@@ -52,8 +52,6 @@ void printScore ( void )
 
 	std::map<int,OneVsOnePlayer>::iterator it = Players.begin();
 
-	//std::string timeMsg = "times";
-	//std::string lifeMsg = "lives";
 	std::string timeMsg;
 	std::string lifeMsg;
 	
