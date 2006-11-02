@@ -19,7 +19,7 @@ BZ_GET_PLUGIN_VERSION
 
 typedef struct {
 	int losses;
-	char callsign[22];
+	char callsign[32];
 	bool official;
 	bool contest;
 } OneVsOnePlayer;
@@ -107,7 +107,7 @@ void addPlayer ( int playerId, const char *callsign )
 {
 	bz_debugMessagef ( DEBUG_LEVEL,"%s START addPlayer :: %d , %s", DEBUG_TAG, playerId, callsign );	
 
-	strncpy (Players[playerId].callsign, callsign, 20);
+	strncpy (Players[playerId].callsign, callsign, 30);
 	Players[playerId].losses=0;
 	Players[playerId].official=false;
 	Players[playerId].contest=false;
