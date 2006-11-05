@@ -118,7 +118,7 @@ Also thanks to all the people who helped me test it :
 (Alphabetic order)
 
 Birdie, Chestal, Grumpf, Karlik25, Kierra, Koziol, MasterYoda, 
-Mr_Molez, Thonolan.
+Mr_Molez, Romfis, Thonolan.
 
 Changelog:
 ==========
