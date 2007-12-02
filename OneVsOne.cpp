@@ -262,7 +262,7 @@ void logRecordMatch(const char * label, int winner, int loser)
 	} 
 				
 	//scores 
-	sprintf( scores,"%s %02d-%02d-%02d %02d:%02d:%02d %s-%s %d-%d\n",
+	sprintf( scores,"%s\t%02d-%02d-%02d %02d:%02d:%02d\t%s\t-\t%s\t%d\t-\t%d\n",
 						label,now->tm_year+1900,now->tm_mon+1,now->tm_mday,
 						now->tm_hour,now->tm_min,now->tm_sec,Players[winner].callsign,
 						Players[loser].callsign,Players[loser].losses,Players[winner].losses );
@@ -340,7 +340,7 @@ void OneVsOne::process ( bz_EventData *eventData )
 				int loser=dieData->playerID;
 				int winner=getWinner(dieData->playerID);
 
-				bz_gameOver (winner, -1);
+				bz_gameOver (winner);
 
 				printBanner(winner, loser);
 
