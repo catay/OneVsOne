@@ -10,7 +10,7 @@
 
 BZ_GET_PLUGIN_VERSION
 
-#define ONEVSONE "1.0.1"
+#define ONEVSONE "1.0.2"
 
 #define MAX_PLAYERS 2
 
