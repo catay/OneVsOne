@@ -30,7 +30,8 @@ bool recording=false;
 
 // report url
 
-std::string url = "http://catay.be/bla.php";
+//std::string url = "http://catay.be/bla.php";
+std::string url = "http://1vs1.bzleague.com/scripts/auto_match_report.php";
 
 // default lives 
 int LIVES=10;
@@ -47,25 +48,6 @@ class OneVsOne : public bz_EventHandler, public bz_CustomSlashCommandHandler
 	private:
 };
 
-class Report : public bz_URLHandler
-{
-
-	public:
-		std:: string page;
-		virtual void done ( const char* /*URL*/, void * data, unsigned int size, bool complete )	
-		{
-			char *str = (char*)malloc(size+1);
-			memcpy(str,data,size);
-			//str[size] = 0;
-			page += str;
-			free(str);
-
-			if ( ! complete)
-				return;
-		}
-};
-
-Report report;
 
 OneVsOne oneVsOne;
 
@@ -283,6 +265,7 @@ void logRecordMatch(const char * label, int winner, int loser)
 			
 	char scores[100];
 	char scores_enc[200];
+	char match_date[20];
 
 	// save recording
 	if ( recording ) {		
@@ -294,32 +277,8 @@ void logRecordMatch(const char * label, int winner, int loser)
 		bz_stopRecBuf();
 		bz_sendTextMessagef ( BZ_SERVER, BZ_ALLUSERS,"Match has been recorded as %s ", filename );
 	} 
-				
-	//scores 
-	sprintf( scores,"%s\t%02d-%02d-%02d %02d:%02d:%02d\t%s\t-\t%s\t%d\t-\t%d\n",
-						label,now->tm_year+1900,now->tm_mon+1,now->tm_mday,
-						now->tm_hour,now->tm_min,now->tm_sec,Players[winner].callsign,
-						Players[loser].callsign,Players[loser].losses,Players[winner].losses );
 
-	//"type=fancy&date=2007-12-01%2015:00:52&winner=catay&loser=strayer&winner_score=10&loser_score=0"	
-	/*
-	sprintf( scores_enc,"type=%s&date=%02d-%02d-%02d %02d:%02d:%02d&winner=%s&loser=%s&winner_score=%d&loser_score=%d\n",
-						label,
-						now->tm_year+1900,
-						now->tm_mon+1,
-						now->tm_mday,
-						now->tm_hour,
-						now->tm_min,
-						now->tm_sec,
-						Players[winner].callsign,
-						Players[loser].callsign,
-						Players[loser].losses,
-						Players[winner].losses);
-	*/
-
-	char date_enc[20];
-
-	sprintf(date_enc, "%02d-%02d-%02d %02d:%02d:%02d",
+	sprintf(match_date, "%02d-%02d-%02d %02d:%02d:%02d",
 			now->tm_year+1900,
 			now->tm_mon+1,
 			now->tm_mday,
@@ -327,21 +286,24 @@ void logRecordMatch(const char * label, int winner, int loser)
 			now->tm_min,
 			now->tm_sec);
 
-	sprintf( scores_enc,"type=%s&date=%s&winner=%s&loser=%s&winner_score=%d&loser_score=%d\n",
+	//format scores 
+	sprintf( scores,"%s\t%s\t%s\t-\t%s\t%d\t-\t%d\n",
+						label,match_date,Players[winner].callsign,
+						Players[loser].callsign,Players[loser].losses,Players[winner].losses );
+
+	//format scores for http
+	sprintf( scores_enc,"type=%s&date=%s&winner=%s&loser=%s&winner_score=%d&loser_score=%d",
 						bz_urlEncode(label),
-						bz_urlEncode(date_enc),
-						Players[winner].callsign,
-						Players[loser].callsign,
+						bz_urlEncode(match_date),
+						bz_urlEncode(Players[winner].callsign),
+						bz_urlEncode(Players[loser].callsign),
 						Players[loser].losses,
 						Players[winner].losses);
 
-	std::cout << "DEBUG :: not encoded => " << scores_enc << std::endl;
-	std::cout << "DEBUG :: wel encoded => " << bz_urlEncode(scores_enc) << std::endl;
-
 	saveScores( scores );
 
-	if ( bz_addURLJob(url.c_str(), &report, scores_enc) )
-		std::cout << report.page << std::endl;
+	bz_debugMessagef ( DEBUG_LEVEL,"%s VAR :: scores_enc = %s", DEBUG_TAG, scores_enc);	
+	bz_addURLJob(url.c_str(), NULL, scores_enc);
 
 	if ( strcasecmp ( label,"official" ) == 0 ) 
 		bz_sendTextMessagef (BZ_SERVER, BZ_ALLUSERS,"The game has been logged as an official match");
@@ -349,7 +311,6 @@ void logRecordMatch(const char * label, int winner, int loser)
 	if ( strcasecmp ( label,"contest" ) == 0 ) 
 		bz_sendTextMessagef (BZ_SERVER, BZ_ALLUSERS,"The game has been logged as a contest match");
 }
-
 
 
 void OneVsOne::process ( bz_EventData *eventData )
