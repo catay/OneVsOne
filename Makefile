@@ -4,4 +4,4 @@ all : OneVsOne.so
 OneVsOne.so : OneVsOne.o
 		$(CXX) $(CXXFLAGS) -shared -rdynamic $^ -o $@
 clean :
-		-rm *.so
+		-rm *.so *.o
