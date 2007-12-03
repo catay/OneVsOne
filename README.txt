@@ -1,4 +1,4 @@
-OneVsOne plugin version 1.0.1  (November 2th, 2006)
+OneVsOne plugin version 1.0.3  (December 3th, 2007)
 ------------------------------------------------
 
  The OneVsOne plugin makes it possible to play
@@ -122,6 +122,14 @@ Mr_Molez, Romfis, Thonolan.
 
 Changelog:
 ==========
+
+ * OneVsOne 1.0.2 (3 December 2007)
+
+   - Used a tab character as a seperator for the match reporting
+     as requested by Strayer & Zongo.
+
+   - First implementation of real time match reporting through
+     http.
 
  * OneVsOne 1.0.1 (2 November 2006)
 
