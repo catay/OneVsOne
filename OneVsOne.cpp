@@ -10,12 +10,81 @@
 
 BZ_GET_PLUGIN_VERSION
 
-#define ONEVSONE "1.0.2"
+#define ONEVSONE "1.0.3"
 
 #define MAX_PLAYERS 2
 
 #define DEBUG_TAG "DEBUG::OneVsOne PLUGIN::" 
 #define DEBUG_LEVEL 2
+
+
+// class Player
+// class Match
+// class Arena
+//
+
+//class Player
+//{
+//	private:
+//
+//		std::string _callsign;
+//		std::map<std::string, bool> _style;
+//
+//	public:
+//
+//		// constructors
+//
+//		Player(){};
+//
+//		// getters
+//		
+//		std::string getCallsign(void);
+//
+//		// setters
+//
+//		void setCallsign(std::string callsign);
+//		void setStyle(std::string style, bool);
+//
+//		// issers
+//
+//		bool hasStyle(std::string style);
+//
+//		// doers
+//
+//}
+//
+//
+//class Match
+//{
+//
+//	private:
+//
+//		int _maxLives;
+//		bool _recording;
+//
+//	public:
+//
+//		Match(){};
+//
+//		// getters
+//
+//		int getMaxLives(void);
+//
+//		// setters
+//
+//
+//
+//		// issers
+//
+//
+//
+//		// doers
+//		
+//		void stopRecording(void);
+//		void startRecording(void);
+//
+//
+//}
 
 typedef struct {
 	int losses;
@@ -37,6 +106,40 @@ std::string url = "http://1vs1.bzleague.com/scripts/auto_match_report.php";
 int LIVES=10;
 // if "none", scores will be written to debug level 2
 char LOGFILE[512]="none";
+
+
+class ZeloUrlHandler : public bz_URLHandler
+{
+
+	public:
+			int player_id;
+			std::string zelo;	
+			virtual void done ( const char* /*URL*/, void * data, unsigned int size, bool complete );
+};
+
+
+ZeloUrlHandler zelourlhandler;
+
+
+void ZeloUrlHandler::done ( const char* /*URL*/, void * data, unsigned int size, bool complete )
+{
+
+	if ( size )
+	{
+		char *tmp = (char*) malloc(size+1);
+		memcpy(tmp, data, size);
+
+		tmp[size] = '\0';
+
+		zelo = tmp;
+	
+		bz_sendTextMessagef(BZ_SERVER, player_id,"complete => %d -- size => %d -- zelo => %s",complete, size, zelo.c_str());
+	}
+	else 
+		bz_sendTextMessage(BZ_SERVER, player_id,"No such player registered.");
+
+}
+
 
 class OneVsOne : public bz_EventHandler, public bz_CustomSlashCommandHandler
 {
@@ -562,6 +665,25 @@ bool OneVsOne::handle ( int playerID, bzApiString cmd, bzApiString, bzAPIStringL
 		return true;
 	}
 
+	if ( strcasecmp ( cmd.c_str(), "zelo" ) == 0) {
+
+		if ( cmdParams->size() == 1 ) {
+
+			char zelodata[200];
+			std::string p1 = bz_urlEncode(cmdParams->get(0).c_str());
+
+			sprintf(zelodata,"player=%s",p1.c_str());
+		
+			zelourlhandler.player_id = playerID;
+			bz_addURLJob("http://catay.be/scripts/zelo.php",&zelourlhandler, zelodata);
+
+			return true;
+
+		}
+
+		bz_sendTextMessagef ( BZ_SERVER, playerID,"Usage: /zelo <callsign>" );
+		return true;
+	}
 
 	return true;
 }
@@ -583,6 +705,7 @@ BZF_PLUGIN_CALL int bz_Load ( const char* commandLine )
 	bz_registerCustomSlashCommand ("official", &oneVsOne);
 	bz_registerCustomSlashCommand ("contest", &oneVsOne);
 	bz_registerCustomSlashCommand ("setlives", &oneVsOne);
+	bz_registerCustomSlashCommand ("zelo", &oneVsOne);
 
 	bz_registerEvent(bz_ePlayerJoinEvent, &oneVsOne);
 	bz_registerEvent(bz_ePlayerPartEvent, &oneVsOne);
@@ -599,6 +722,7 @@ BZF_PLUGIN_CALL int bz_Unload ( void )
 	bz_removeCustomSlashCommand ("official");
 	bz_removeCustomSlashCommand ("contest");
 	bz_removeCustomSlashCommand ("setlives");
+	bz_removeCustomSlashCommand ("zelo");
 
 	bz_removeEvent(bz_ePlayerJoinEvent, &oneVsOne);
 	bz_removeEvent(bz_ePlayerPartEvent, &oneVsOne);
