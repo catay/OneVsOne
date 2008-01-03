@@ -7,6 +7,7 @@
 #include <sstream>
 #include "bzfsAPI.h"
 #include <time.h>
+#include <vector>
 
 BZ_GET_PLUGIN_VERSION
 
@@ -100,12 +101,61 @@ bool recording=false;
 // report url
 
 std::string url = "http://catay.be/scripts/action.php";
+std::string homeurl = "http://1vs1.bzleague.com/scripts/plugin_bot.php";
 //std::string url = "http://1vs1.bzleague.com/scripts/auto_match_report.php";
 
 // default lives 
 int LIVES=10;
 // if "none", scores will be written to debug level 2
 char LOGFILE[512]="none";
+
+/// HELPER STUFF ///
+
+// function returns true when a valid status is returned.
+
+bool is_valid_status(const std::string& _data) 
+{
+	if (_data.size() < 2)
+		return false;
+
+	if ( _data.compare(0,2, "OK") == 0 || _data.compare(0,3, "NOK") == 0)
+		return true;
+
+	return false;
+}
+
+// tokenize function
+
+std::vector<std::string> tokenize(const std::string& _data, char * _pattern)
+{
+
+	std::vector<std::string> v;
+
+	bool go = true;
+	char * pattern = _pattern;
+	int start = 0; 
+	int end = 0;
+
+	end = _data.find(pattern, start);
+
+	while (go)
+	{
+		if ( end != std::string::npos)
+		{
+			v.push_back(_data.substr(start, end-start));		
+			start = end + strlen(pattern);
+			end = _data.find(pattern, start);
+		}
+		else 			
+			{
+				if ( start < _data.size())
+					v.push_back(_data.substr(start, end-start));		
+				go=false;
+			}
+	}
+
+	return v;
+}
 
 /// Class PlayerInfo
 /// The PlayerInfo class handles player info queries
@@ -115,21 +165,57 @@ class PlayerInfo : public bz_URLHandler
 {
 
 	public:
-			PlayerInfo() { playerId = -1;};
+			PlayerInfo() { _playerId = -1;};
 			~PlayerInfo() {};
 
 			virtual void done ( const char* /*URL*/, void * data, unsigned int size, bool complete );
+			void setPlayerId(int playerId);
 
 	private:
-			int playerId;
+			int _playerId;
 			std::string _data; 
 };
 
+void PlayerInfo::setPlayerId(int playerId)
+{
+	_playerId = playerId;
+}
 
 void PlayerInfo::done ( const char* /*URL*/, void * data, unsigned int size, bool complete )
 {
 
-	std::cout << "test";
+	std::cout << "DEBUG :: PlayerInfo::done start => size : " << size << std::endl;
+
+	_data.clear();
+	int i = 0;
+
+	if ( size )
+	{
+		_data.append((char*)data, size);
+
+		if (is_valid_status(_data))	
+		{
+			std::cout << "DEBUG :: PlayerInfo::  => is valid data" << std::endl;
+
+			std::vector<std::string> datalist = tokenize(_data,"\r\n");
+
+			if (datalist[0] == "OK") 
+			{
+				std::cout << "DEBUG :: PlayerInfo:: => OK : " << std::endl;
+				for ( i = 1; i < datalist.size(); i++)
+					std::cout << "DEBUG :: datalist => " << datalist[i] << std::endl;
+			}
+
+			if (datalist[0] == "NOK")
+					bz_sendTextMessagef ( BZ_SERVER, _playerId,"%s", datalist[1].c_str());
+		}
+		else
+			std::cout << "DEBUG :: PlayerInfo::  => no valid data" << std::endl;
+
+	}
+
+
+	std::cout << "DEBUG :: PlayerInfo::done stop => size : " << size << std::endl;
 
 }
 
@@ -202,13 +288,26 @@ void Register::done ( const char* /*URL*/, void * data, unsigned int size, bool 
 
 	_data.clear();
 
-	if ( size == 2 )
+	if ( size )
 	{
 		_data.append((char*)data, size);
+		std::cout << "DEBUG :: " << _data << std::endl;
 
-		if ( _data.compare("OK") == 0 )
+		char pattern = '\n';
+		int start = 0;
+		int end = 0;
+
+		std::cout << "DEBUG:: end => " << end << std::endl;
+
+		end=_data.find('\n', start);
+
+		while ( start < _data.size() && end <= std::string::npos)
 		{
-			bz_sendTextMessage(BZ_SERVER, _playerId,"Your registration was successfull.");
+			std::cout << " * " << _data.substr(start,(end-start)) << " * " << std::endl;
+
+			bz_sendTextMessagef(BZ_SERVER, _playerId,"* %s * ", _data.substr(start,(end-start)).c_str());
+			start = end + 1;
+			end=_data.find(pattern,start);
 		}
 
 	}
@@ -218,9 +317,9 @@ void Register::done ( const char* /*URL*/, void * data, unsigned int size, bool 
 }
 
 
-void Register::error ( const char* /*URL*/, int errorCode, const char * /*errorString*/ )
+void Register::error ( const char* /*URL*/, int errorCode, const char * errorString )
 {
- bz_sendTextMessagef(BZ_SERVER, _playerId,"Registration failed with errorcode = %d !!",errorCode);
+ bz_sendTextMessagef(BZ_SERVER, _playerId,"Registration failed with errorcode = %d - %s  !!",errorCode, errorString);
 }
 
 class OneVsOne : public bz_EventHandler, public bz_CustomSlashCommandHandler
@@ -234,9 +333,11 @@ class OneVsOne : public bz_EventHandler, public bz_CustomSlashCommandHandler
 
 			Register registerHandler;
 			Report reportHandler;
+			PlayerInfo playerInfoHandler;
 
 			void logRecordMatch(const char * label, int winner, int loser);
 			void registerPlayer(int p, bzAPIStringList*);
+			void getPlayerInfo(int p, bzAPIStringList*);
 			void showHelp(int p);
 };
 
@@ -279,6 +380,33 @@ void OneVsOne::registerPlayer(int playerID, bzAPIStringList* params)
 
 }
 
+
+void OneVsOne::getPlayerInfo(int playerID, bzAPIStringList* params) 
+{
+
+	if ( params->size() == 2 ) 
+	{
+		bz_PlayerRecord *playerRecord;
+
+		playerRecord = bz_getPlayerByIndex ( playerID );
+
+		std::string  playerinfodata;
+
+		playerinfodata = std::string("action=playerinfo&callsigns=") + std::string(bz_urlEncode(params->get(1).c_str()));
+
+		bz_debugMessagef( DEBUG_LEVEL, "DEBUG::getPlayerInfo = %s",playerinfodata.c_str());
+
+		playerInfoHandler.setPlayerId(playerID);
+					
+		bz_addURLJob(homeurl.c_str(),&playerInfoHandler, playerinfodata.c_str());
+
+		bz_freePlayerRecord ( playerRecord );
+	}
+	else
+		bz_sendTextMessage( BZ_SERVER, playerID,"Usage: /ovso playerinfo <callsign>" );
+
+}
+
 void  OneVsOne::showHelp(int playerID)
 {
 
@@ -288,6 +416,7 @@ void  OneVsOne::showHelp(int playerID)
 	bz_sendTextMessage( BZ_SERVER, playerID,"" );
 	bz_sendTextMessage( BZ_SERVER, playerID," help [<action>] 1vs1 help" );
 	bz_sendTextMessage( BZ_SERVER, playerID," register <valid emailaddress>  1vs1 league registration" );
+	bz_sendTextMessage( BZ_SERVER, playerID," playerinfo <callsign>  show 1vs1 info of a player" );
 	bz_sendTextMessage( BZ_SERVER, playerID,"" );
 
 }
@@ -809,6 +938,12 @@ bool OneVsOne::handle ( int playerID, bzApiString cmd, bzApiString, bzAPIStringL
 				registerPlayer(playerID, cmdParams);
 				return true;
 			}
+
+			if ( action == "playerinfo" ) {
+				getPlayerInfo(playerID, cmdParams);
+				return true;
+			}
+
 		}
 
 		showHelp(playerID);
