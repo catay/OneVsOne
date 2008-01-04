@@ -114,6 +114,9 @@ To much people to name, I will sure forget people here.
 Pimpinella : the original coder of the first bzflag 1vs1
              implementation.
 
+Strayer    : for the nifty php scripts which send/receive
+			 the data from/to the plugin.	
+
 Also thanks to all the people who helped me test it :
 (Alphabetic order)
 
