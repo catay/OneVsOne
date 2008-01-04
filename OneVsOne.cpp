@@ -389,7 +389,7 @@ class Register : public bz_URLHandler
 {
 	public:
 
-			Register() { _playerId = -1; _data = ""; };
+			Register() { _playerIds.clear(); };
 			~Register() {}; 
 
 			void setPlayerId(int playerId);
@@ -398,53 +398,53 @@ class Register : public bz_URLHandler
 			virtual void error ( const char* /*URL*/, int /*errorCode*/, const char * /*errorString*/ );
 
 	private:
-			int _playerId;
-			std::string _data; 
+			std::vector<int> _playerIds;
 };
 
 void Register::setPlayerId(int playerId)
 {
-	_playerId = playerId;
+	_playerIds.push_back(playerId);
 }
 
 
 void Register::done ( const char* /*URL*/, void * data, unsigned int size, bool complete )
 {
 
-	_data.clear();
+	int _playerId = _playerIds[0];
+	_playerIds.erase(_playerIds.begin());
 
 	if ( size )
 	{
+		std::string _data; 
+
 		_data.append((char*)data, size);
-		std::cout << "DEBUG :: " << _data << std::endl;
 
-		char pattern = '\n';
-		int start = 0;
-		int end = 0;
-
-		std::cout << "DEBUG:: end => " << end << std::endl;
-
-		end=_data.find('\n', start);
-
-		while ( start < _data.size() && end <= std::string::npos)
+		if (is_valid_status(_data))	
 		{
-			std::cout << " * " << _data.substr(start,(end-start)) << " * " << std::endl;
+			bzAPIStringList* dataList = bz_newStringList();
+			dataList->tokenize(_data.c_str(), "\r\n");
 
-			bz_sendTextMessagef(BZ_SERVER, _playerId,"* %s * ", _data.substr(start,(end-start)).c_str());
-			start = end + 1;
-			end=_data.find(pattern,start);
+			if (dataList->get(0) == "OK") 
+				for ( unsigned int i = 1; i < dataList->size(); i++)
+					bz_sendTextMessagef ( BZ_SERVER, _playerId,"%s", dataList->get(i).c_str());
+
+			if (dataList->get(0) == "NOK")
+					bz_sendTextMessagef ( BZ_SERVER, _playerId,"%s", dataList->get(1).c_str());
+
+			bz_deleteStringList(dataList);
 		}
-
+		else
+			bz_sendTextMessage (BZ_SERVER, _playerId,"no valid data was returned");
 	}
-
-	bz_sendTextMessagef(BZ_SERVER, _playerId,"complete => %d -- size => %d ",complete, size);
-
 }
 
 
 void Register::error ( const char* /*URL*/, int errorCode, const char * errorString )
 {
- bz_sendTextMessagef(BZ_SERVER, _playerId,"Registration failed with errorcode = %d - %s  !!",errorCode, errorString);
+
+	int _playerId = _playerIds[0];
+	_playerIds.erase(_playerIds.begin());
+	 bz_sendTextMessagef(BZ_SERVER, _playerId,"Registration failed with errorcode = %d - %s  !!",errorCode, errorString);
 }
 
 class OneVsOne : public bz_EventHandler, public bz_CustomSlashCommandHandler
@@ -467,7 +467,7 @@ class OneVsOne : public bz_EventHandler, public bz_CustomSlashCommandHandler
 			void getPlayerInfo(int p, bzAPIStringList*);
 			void getTopScore(int p, bzAPIStringList*);
 			void getTopZelo(int p, bzAPIStringList*);
-			void showHelp(int p);
+			void showHelp(int p, bzApiString action = "all");
 };
 
 
@@ -497,7 +497,7 @@ void OneVsOne::registerPlayer(int playerID, bzAPIStringList* params)
 
 			registerHandler.setPlayerId(playerID);
 					
-			bz_addURLJob(url.c_str(),&registerHandler, registerdata.c_str());
+			bz_addURLJob(homeurl.c_str(),&registerHandler, registerdata.c_str());
 		}
 		else
 			bz_sendTextMessagef ( BZ_SERVER, playerID,"You must be globally registered and identified to register here" );
@@ -505,7 +505,7 @@ void OneVsOne::registerPlayer(int playerID, bzAPIStringList* params)
 		bz_freePlayerRecord ( playerRecord );
 	}
 	else
-		bz_sendTextMessage( BZ_SERVER, playerID,"Usage: /ovso register <emailaddress>" );
+		showHelp(playerID, params->get(0));
 
 }
 
@@ -534,15 +534,14 @@ void OneVsOne::getPlayerInfo(int playerID, bzAPIStringList* params)
 		bz_freePlayerRecord ( playerRecord );
 	}
 	else
-		bz_sendTextMessage( BZ_SERVER, playerID,"Usage: /ovso playerinfo <callsign [callsign] ...>" );
-
+		showHelp(playerID, params->get(0));
 }
 
 void OneVsOne::getTopScore(int playerID, bzAPIStringList* params) 
 {
 
 	if ( params->size() >  2 ) 
-		bz_sendTextMessage( BZ_SERVER, playerID,"Usage: /ovso topscore [<items>]" );
+		showHelp(playerID, params->get(0));
 	else
 		{
 			bz_PlayerRecord *playerRecord;
@@ -571,7 +570,7 @@ void OneVsOne::getTopZelo(int playerID, bzAPIStringList* params)
 {
 
 	if ( params->size() >  2 ) 
-		bz_sendTextMessage( BZ_SERVER, playerID,"Usage: /ovso topzelo [<items>]" );
+		showHelp(playerID, params->get(0));
 	else
 		{
 			bz_PlayerRecord *playerRecord;
@@ -595,19 +594,33 @@ void OneVsOne::getTopZelo(int playerID, bzAPIStringList* params)
 
 }
 
-void  OneVsOne::showHelp(int playerID)
+void  OneVsOne::showHelp(int playerID, bzApiString action)
 {
-
-	bz_sendTextMessage( BZ_SERVER, playerID,"Usage: /ovso <action> <params>" );
-	bz_sendTextMessage( BZ_SERVER, playerID,"" );
-	bz_sendTextMessage( BZ_SERVER, playerID,"actions:" );
-	bz_sendTextMessage( BZ_SERVER, playerID,"" );
-	bz_sendTextMessage( BZ_SERVER, playerID," help [<action>] 1vs1 help" );
-	bz_sendTextMessage( BZ_SERVER, playerID," register <valid emailaddress>  1vs1 league registration" );
-	bz_sendTextMessage( BZ_SERVER, playerID," playerinfo <callsign>  show 1vs1 info of a player" );
-	bz_sendTextMessage( BZ_SERVER, playerID," topscore [<items>]  show the monthly player score ranking" );
-	bz_sendTextMessage( BZ_SERVER, playerID," topzelo [<items>]  show the player zelo ranking" );
-	bz_sendTextMessage( BZ_SERVER, playerID,"" );
+	action.tolower();
+		
+	if (action == "help")
+		bz_sendTextMessage( BZ_SERVER, playerID,"Usage: /ovso help [<action>]" );
+	else if (action == "register")
+		bz_sendTextMessage( BZ_SERVER, playerID,"Usage: /ovso register <emailaddress>" );
+	else if (action == "playerinfo")
+		bz_sendTextMessage( BZ_SERVER, playerID,"Usage: /ovso playerinfo <callsign> [<callsign> ...]" );
+	else if (action == "topscore")
+		bz_sendTextMessage( BZ_SERVER, playerID,"Usage: /ovso topscore [<items>]" );
+	else if (action == "topzelo")
+		bz_sendTextMessage( BZ_SERVER, playerID,"Usage: /ovso topzelo [<items>]" );
+	else 
+		{
+			bz_sendTextMessage( BZ_SERVER, playerID,"Usage: /ovso <action> <params>" );
+			bz_sendTextMessage( BZ_SERVER, playerID,"" );
+			bz_sendTextMessage( BZ_SERVER, playerID,"actions:" );
+			bz_sendTextMessage( BZ_SERVER, playerID,"" );
+			bz_sendTextMessage( BZ_SERVER, playerID," help [<action>] 1vs1 help" );
+			bz_sendTextMessage( BZ_SERVER, playerID," register <valid emailaddress>  1vs1 league registration" );
+			bz_sendTextMessage( BZ_SERVER, playerID," playerinfo <callsign>  show 1vs1 info of a player" );
+			bz_sendTextMessage( BZ_SERVER, playerID," topscore [<items>]  show the monthly player score ranking" );
+			bz_sendTextMessage( BZ_SERVER, playerID," topzelo [<items>]  show the player zelo ranking" );
+			bz_sendTextMessage( BZ_SERVER, playerID,"" );
+		}
 
 }
 
@@ -847,19 +860,33 @@ void OneVsOne::logRecordMatch(const char * label, int winner, int loser)
 			now->tm_min,
 			now->tm_sec);
 
+	// get bzid's ... dirty
+	
+	bz_PlayerRecord *playerRecord;
+
+	playerRecord = bz_getPlayerByIndex ( winner );
+
+	bzApiString wbzid = playerRecord->bzID;
+
+	playerRecord = bz_getPlayerByIndex ( loser );
+
+	bzApiString lbzid = playerRecord->bzID;
+
+	bz_freePlayerRecord ( playerRecord );
+
 	//format scores 
 	sprintf( scores,"%s\t%s\t%s\t-\t%s\t%d\t-\t%d\n",
 						label,match_date,Players[winner].callsign.c_str(),
-						Players[loser].callsign.c_str(),Players[loser].losses,Players[winner].losses );
-
-
-	// because of a bug in sprintf or bz_urlEncode which I can't track
-	// down I have to use this clumsy way
+						Players[loser].callsign.c_str(),Players[loser].losses,Players[winner].losses,
+						wbzid.c_str(),lbzid.c_str());
 
 	reportData = std::string("type=") + std::string(bz_urlEncode(label)) + std::string("&date=") + std::string(bz_urlEncode(match_date)) +
-					std::string("&winner=") + std::string(bz_urlEncode(Players[winner].callsign.c_str())) + std::string("&loser=") +
-					std::string(bz_urlEncode(Players[loser].callsign.c_str())) + std::string("&winner_score=") + to_string(Players[loser].losses) +
-					std::string("&loser_score=") + to_string(Players[winner].losses);
+					std::string("&winner=") + std::string(bz_urlEncode(Players[winner].callsign.c_str())) + 
+					std::string("&loser=") + std::string(bz_urlEncode(Players[loser].callsign.c_str())) + 
+					std::string("&winner_score=") + to_string(Players[loser].losses) + 
+					std::string("&loser_score=") + to_string(Players[winner].losses) +
+					std::string("&wbzid=") + std::string(wbzid.c_str()) +
+					std::string("&lbzid=") + std::string(lbzid.c_str());
 
 	saveScores( scores );
 
@@ -987,6 +1014,7 @@ bool OneVsOne::handle ( int playerID, bzApiString cmd, bzApiString msg, bzAPIStr
 
 	// transfrom to lowercase
 	cmd.tolower();
+	msg.tolower();
 
 	if ( strcasecmp ( cmd.c_str(), "official") == 0 ) {
 
@@ -1123,6 +1151,14 @@ bool OneVsOne::handle ( int playerID, bzApiString cmd, bzApiString msg, bzAPIStr
 
 			bzApiString action = cmdParams->get(0);
 			action.tolower();
+
+			if ( action == "help") {
+				if ( cmdParams->size() == 2 )
+					showHelp(playerID,cmdParams->get(1));
+				else showHelp(playerID);
+
+				return true;
+			}
 			
 			if ( action == "register") {
 				registerPlayer(playerID, cmdParams);
