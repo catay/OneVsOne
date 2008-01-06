@@ -354,27 +354,53 @@ class Report : public bz_URLHandler
 {
 
 	public:
+			Report() { _playerIds.clear();};
+			~Report() {};
 			virtual void done ( const char* /*URL*/, void * data, unsigned int size, bool complete );
+			void setPlayerId(int playerId);
 
 	private:
-			std::string _data; 
+			std::vector<int> _playerIds;
+
 
 };
 
+void Report::setPlayerId(int playerId)
+{
+	_playerIds.push_back(playerId);
+}
+
 void Report::done ( const char* /*URL*/, void * data, unsigned int size, bool complete )
 {
-	_data.clear();
 
-	if ( size == 2 )
+	int _playerId = _playerIds[0];
+	_playerIds.erase(_playerIds.begin());
+
+	if ( size )
 	{
+		std::string _data; 
+
 		_data.append((char*)data, size);
 
-		if ( _data.compare("OK") == 0 )
-			bz_sendTextMessage(BZ_SERVER, BZ_ALLUSERS,"The match is reported successfully on the site.");
+		if (is_valid_status(_data))	
+		{
+			bzAPIStringList* dataList = bz_newStringList();
+			dataList->tokenize(_data.c_str(), "\r\n");
+
+			if (dataList->get(0) == "OK") 
+				for ( unsigned int i = 1; i < dataList->size(); i++)
+					bz_sendTextMessagef ( BZ_SERVER, _playerId,"%s", dataList->get(i).c_str());
+
+			if (dataList->get(0) == "NOK")
+				for ( unsigned int i = 1; i < dataList->size(); i++)
+					bz_sendTextMessagef ( BZ_SERVER, _playerId,"%s", dataList->get(i).c_str());
+
+			bz_deleteStringList(dataList);
+		}
 		else
-			bz_sendTextMessage(BZ_SERVER, BZ_ALLUSERS,"Something went wrong with the realtime match reporting.");
-			bz_sendTextMessage(BZ_SERVER, BZ_ALLUSERS,"No worries. The match will be reported later.");
+			bz_sendTextMessage (BZ_SERVER, _playerId,"no valid data was returned");
 	}
+
 
 }
 
@@ -429,7 +455,8 @@ void Register::done ( const char* /*URL*/, void * data, unsigned int size, bool 
 					bz_sendTextMessagef ( BZ_SERVER, _playerId,"%s", dataList->get(i).c_str());
 
 			if (dataList->get(0) == "NOK")
-					bz_sendTextMessagef ( BZ_SERVER, _playerId,"%s", dataList->get(1).c_str());
+				for ( unsigned int i = 1; i < dataList->size(); i++)
+					bz_sendTextMessagef ( BZ_SERVER, _playerId,"%s", dataList->get(i).c_str());
 
 			bz_deleteStringList(dataList);
 		}
@@ -875,13 +902,14 @@ void OneVsOne::logRecordMatch(const char * label, int winner, int loser)
 	bz_freePlayerRecord ( playerRecord );
 
 	//format scores 
-	sprintf( scores,"%s\t%s\t%s\t-\t%s\t%d\t-\t%d\n",
+	sprintf( scores,"%s\t%s\t%s\t-\t%s\t%d\t-\t%d\t%s\t%s\n",
 						label,match_date,Players[winner].callsign.c_str(),
 						Players[loser].callsign.c_str(),Players[loser].losses,Players[winner].losses,
 						wbzid.c_str(),lbzid.c_str());
 
-	reportData = std::string("type=") + std::string(bz_urlEncode(label)) + std::string("&date=") + std::string(bz_urlEncode(match_date)) +
-					std::string("&winner=") + std::string(bz_urlEncode(Players[winner].callsign.c_str())) + 
+	reportData = std::string ("action=report") + std::string("&type=") + std::string(bz_urlEncode(label)) + std::string("&date=") + 
+					std::string(bz_urlEncode(match_date)) + std::string("&winner=") + 
+					std::string(bz_urlEncode(Players[winner].callsign.c_str())) + 
 					std::string("&loser=") + std::string(bz_urlEncode(Players[loser].callsign.c_str())) + 
 					std::string("&winner_score=") + to_string(Players[loser].losses) + 
 					std::string("&loser_score=") + to_string(Players[winner].losses) +
@@ -892,14 +920,17 @@ void OneVsOne::logRecordMatch(const char * label, int winner, int loser)
 
 	bz_debugMessagef ( DEBUG_LEVEL,"%s VAR :: reportData = %s", DEBUG_TAG, reportData.c_str());	
 
-	// do reporting over http
-	bz_addURLJob(url.c_str(), &reportHandler, reportData.c_str());
-
 	if ( strcasecmp ( label,"official" ) == 0 ) 
 		bz_sendTextMessagef (BZ_SERVER, BZ_ALLUSERS,"The game has been logged as an official match");
 
 	if ( strcasecmp ( label,"contest" ) == 0 ) 
 		bz_sendTextMessagef (BZ_SERVER, BZ_ALLUSERS,"The game has been logged as a contest match");
+
+	// do reporting over http
+
+	reportHandler.setPlayerId(BZ_ALLUSERS);
+	bz_addURLJob(homeurl.c_str(), &reportHandler, reportData.c_str());
+
 }
 
 
