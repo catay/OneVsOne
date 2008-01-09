@@ -113,12 +113,107 @@ char LOGFILE[512]="none";
 
 // function returns true when a valid status is returned.
 
-bool is_valid_status(const std::string& _data) 
+
+/// class BaseUrlHandler 
+//
+
+class BaseUrlHandler : public bz_URLHandler
 {
-	if (_data.size() < 2)
+
+	public:
+			BaseUrlHandler() 
+			{ 
+				_playerIds.clear();
+				_max_data_size = 1000000;
+			};
+
+			~BaseUrlHandler() {};
+
+			virtual void done ( const char* /*URL*/, void * data, unsigned int size, bool complete );
+			virtual void error ( const char* /*URL*/, int /*errorCode*/, const char * /*errorString*/ );
+			virtual void showDataOK(int playerId, bzAPIStringList* data);
+			virtual void showDataNOK(int playerId, bzAPIStringList* data);
+
+			void setPlayerId(int playerId);
+
+			bool is_valid_status(const std::string& data);
+
+	private:
+			std::vector<int> _playerIds;
+			unsigned int _max_data_size;
+
+};
+
+void BaseUrlHandler::done ( const char* /*URL*/, void * data, unsigned int size, bool complete )
+{
+
+	int _playerId = _playerIds[0];
+	_playerIds.erase(_playerIds.begin());
+
+	if ( size > 1 && size < _max_data_size )
+	{
+		std::string _data; 
+
+		_data.append((char*)data, size);
+
+		if (is_valid_status(_data))	
+		{
+			bzAPIStringList* dataList = bz_newStringList();
+			dataList->tokenize(_data.c_str(), "\r\n");
+
+			if (dataList->get(0) == "OK") 
+				showDataOK(_playerId, dataList);
+
+			if (dataList->get(0) == "NOK")
+				showDataNOK(_playerId, dataList);
+
+			bz_deleteStringList(dataList);
+		}
+		else
+			{		
+				bz_sendTextMessage (BZ_SERVER, _playerId,"No valid data was received !");
+				bz_sendTextMessage (BZ_SERVER, _playerId,"This points to a bug or misuse. Please contact the server admin.");
+			}
+	}
+	else
+		{
+			bz_sendTextMessagef (BZ_SERVER, _playerId,"The received data size (%d) exceede the limit (%d)", size, _max_data_size);
+			bz_sendTextMessage (BZ_SERVER, _playerId,"This points to a bug or misuse. Please contact the server admin.");
+		}
+
+}
+
+
+void BaseUrlHandler::error ( const char* /*URL*/, int errorCode, const char * errorString )
+{
+
+	int _playerId = _playerIds[0];
+	_playerIds.erase(_playerIds.begin());
+	 bz_sendTextMessagef(BZ_SERVER, _playerId,"Action failed with errorcode = %d - %s  !!",errorCode, errorString);
+}
+
+void BaseUrlHandler::showDataOK(int playerId, bzAPIStringList* data)
+{
+	for ( unsigned int i = 1; i < data->size(); i++)
+		bz_sendTextMessagef ( BZ_SERVER, playerId,"%s", data->get(i).c_str());
+}
+
+void BaseUrlHandler::showDataNOK(int playerId, bzAPIStringList* data)
+{
+	bz_sendTextMessagef ( BZ_SERVER, playerId,"%s", data->get(1).c_str());
+}
+
+void BaseUrlHandler::setPlayerId(int playerId)
+{
+	_playerIds.push_back(playerId);
+}
+
+bool BaseUrlHandler::is_valid_status(const std::string& data) 
+{
+	if (data.size() < 2)
 		return false;
 
-	if ( _data.compare(0,2, "OK") == 0 || _data.compare(0,3, "NOK") == 0)
+	if ( data.compare(0,2, "OK") == 0 || data.compare(0,3, "NOK") == 0)
 		return true;
 
 	return false;
@@ -129,361 +224,106 @@ bool is_valid_status(const std::string& _data)
 /// The PlayerInfo class handles player info queries
 ///
 
-class PlayerInfo : public bz_URLHandler
+class PlayerInfo : public BaseUrlHandler
 {
 
 	public:
-			PlayerInfo() { _playerIds.clear();};
-			~PlayerInfo() {};
-
-			virtual void done ( const char* /*URL*/, void * data, unsigned int size, bool complete );
-			void setPlayerId(int playerId);
-
+			virtual void showDataOK(int playerId, bzAPIStringList* data);
 	private:
-			std::vector<int> _playerIds;
 };
 
-void PlayerInfo::setPlayerId(int playerId)
-{
-	_playerIds.push_back(playerId);
-}
 
-void PlayerInfo::done ( const char* /*URL*/, void * data, unsigned int size, bool complete )
+void PlayerInfo::showDataOK(int playerId, bzAPIStringList* data)
 {
 
-	int _playerId = _playerIds[0];
-	_playerIds.erase(_playerIds.begin());
-
-	if ( size )
+	for ( unsigned int i = 1; i < data->size(); i++)
 	{
-		std::string _data; 
+		bzAPIStringList* playerList = bz_newStringList();
+		playerList->tokenize(data->get(i).c_str(), "\t", 6, false);
 
-		_data.append((char*)data, size);
+		bz_sendTextMessagef ( BZ_SERVER, playerId,"Player info for %s", playerList->get(0).c_str());
+		bz_sendTextMessage ( BZ_SERVER, playerId,"-------------------------------------------");
+		bz_sendTextMessagef ( BZ_SERVER, playerId,"zelo         : %s", playerList->get(1).c_str());
+		bz_sendTextMessagef ( BZ_SERVER, playerId,"score        : %s", playerList->get(5).c_str());
+		bz_sendTextMessagef ( BZ_SERVER, playerId,"matches won  : %s", playerList->get(2).c_str());
+		bz_sendTextMessagef ( BZ_SERVER, playerId,"matches lost : %s", playerList->get(3).c_str());
+		bz_sendTextMessagef ( BZ_SERVER, playerId,"status       : %s", playerList->get(4).c_str());
+		bz_sendTextMessage ( BZ_SERVER, playerId,"-------------------------------------------");
 
-		if (is_valid_status(_data))	
-		{
-			bzAPIStringList* dataList = bz_newStringList();
-			dataList->tokenize(_data.c_str(), "\r\n");
-
-			if (dataList->get(0) == "OK") 
-			{
-				for ( unsigned int i = 1; i < dataList->size(); i++)
-				{
-					bzAPIStringList* playerList = bz_newStringList();
-					playerList->tokenize(dataList->get(i).c_str(), "\t", 6, false);
-
-					bz_sendTextMessagef ( BZ_SERVER, _playerId,"Player info for %s", playerList->get(0).c_str());
-					bz_sendTextMessage ( BZ_SERVER, _playerId,"-------------------------------------------");
-					bz_sendTextMessagef ( BZ_SERVER, _playerId,"zelo         : %s", playerList->get(1).c_str());
-					bz_sendTextMessagef ( BZ_SERVER, _playerId,"score        : %s", playerList->get(5).c_str());
-					bz_sendTextMessagef ( BZ_SERVER, _playerId,"matches won  : %s", playerList->get(2).c_str());
-					bz_sendTextMessagef ( BZ_SERVER, _playerId,"matches lost : %s", playerList->get(3).c_str());
-					bz_sendTextMessagef ( BZ_SERVER, _playerId,"status       : %s", playerList->get(4).c_str());
-					bz_sendTextMessage ( BZ_SERVER, _playerId,"-------------------------------------------");
-
-					bz_deleteStringList(playerList);
-				}
-			}
-
-			if (dataList->get(0) == "NOK")
-					bz_sendTextMessagef ( BZ_SERVER, _playerId,"%s", dataList->get(1).c_str());
-
-			bz_deleteStringList(dataList);
-		}
-		else
-			bz_sendTextMessage (BZ_SERVER, _playerId,"no valid data was returned");
+		bz_deleteStringList(playerList);
 	}
-
 }
+
 
 /// Class TopScore
 /// The TopScore class handles the topscore info queries
 ///
 
-class TopScore : public bz_URLHandler
+class TopScore : public BaseUrlHandler
 {
 
 	public:
-			TopScore() { _playerIds.clear();};
-			~TopScore() {};
-
-			virtual void done ( const char* /*URL*/, void * data, unsigned int size, bool complete );
-			void setPlayerId(int playerId);
-
-	private:
-			std::vector<int> _playerIds;
+			virtual void showDataOK(int playerId, bzAPIStringList* data);
 };
 
-void TopScore::setPlayerId(int playerId)
-{
-	_playerIds.push_back(playerId);
-}
 
-void TopScore::done ( const char* /*URL*/, void * data, unsigned int size, bool complete )
+void TopScore::showDataOK(int playerId, bzAPIStringList* data)
 {
 
-	int _playerId = _playerIds[0];
-	_playerIds.erase(_playerIds.begin());
+	bz_sendTextMessage ( BZ_SERVER, playerId,"Monthly points ranking");
+	bz_sendTextMessage ( BZ_SERVER, playerId,"-------------------------------------------");
+	bz_sendTextMessagef ( BZ_SERVER, playerId,"%-4s %-32s %5s", "Pos", "Player", "Score");
+	bz_sendTextMessagef ( BZ_SERVER, playerId,"%-4s %-32s %5s", "---", "------", "-----");
 
-	if ( size )
+	for ( unsigned int i = 1; i < data->size(); i++)
 	{
-		std::string _data; 
+		bzAPIStringList* topScoreList = bz_newStringList();
+		topScoreList->tokenize(data->get(i).c_str(), "\t", 3, false);
 
-		_data.append((char*)data, size);
+		bz_sendTextMessagef ( BZ_SERVER, playerId,"%-4s %-32s %-4s", topScoreList->get(0).c_str(), 
+		topScoreList->get(1).c_str(),topScoreList->get(2).c_str());
 
-		if (is_valid_status(_data))	
-		{
-			bzAPIStringList* dataList = bz_newStringList();
-			dataList->tokenize(_data.c_str(), "\r\n");
-
-			if (dataList->get(0) == "OK") 
-			{
-
-
-				bz_sendTextMessage ( BZ_SERVER, _playerId,"Monthly points ranking");
-				bz_sendTextMessage ( BZ_SERVER, _playerId,"-------------------------------------------");
-				bz_sendTextMessagef ( BZ_SERVER, _playerId,"%-4s %-32s %-4s", "Pos", "Player", "Score");
-				bz_sendTextMessagef ( BZ_SERVER, _playerId,"%-4s %-32s %-4s", "---", "------", "-----");
-
-
-				for ( unsigned int i = 1; i < dataList->size(); i++)
-				{
-					bzAPIStringList* topScoreList = bz_newStringList();
-					topScoreList->tokenize(dataList->get(i).c_str(), "\t", 3, false);
-
-					bz_sendTextMessagef ( BZ_SERVER, _playerId,"%-4s %-32s %-4s", topScoreList->get(0).c_str(), 
-																		topScoreList->get(1).c_str(),topScoreList->get(2).c_str());
-
-					bz_debugMessagef ( DEBUG_LEVEL,"%-4s %-32s %-4s", topScoreList->get(0).c_str(), 
-																		topScoreList->get(1).c_str(),topScoreList->get(2).c_str());
-					bz_deleteStringList(topScoreList);
-				}
-
-				bz_sendTextMessage ( BZ_SERVER, _playerId,"-------------------------------------------");
-			}
-
-			if (dataList->get(0) == "NOK")
-					bz_sendTextMessagef ( BZ_SERVER, _playerId,"%s", dataList->get(1).c_str());
-
-			bz_deleteStringList(dataList);
-		}
-		else
-			bz_sendTextMessage (BZ_SERVER, _playerId,"no valid data was returned");
+		bz_debugMessagef ( DEBUG_LEVEL,"%-4s %-32s %-4s", topScoreList->get(0).c_str(), 
+		topScoreList->get(1).c_str(),topScoreList->get(2).c_str());
+		bz_deleteStringList(topScoreList);
 	}
 
+	bz_sendTextMessage ( BZ_SERVER, playerId,"-------------------------------------------");
 }
 
 /// Class TopZelo
 /// The TopZelo class handles the topzelo info queries
 ///
 
-class TopZelo : public bz_URLHandler
+class TopZelo : public BaseUrlHandler
 {
 
 	public:
-			TopZelo() { _playerIds.clear();};
-			~TopZelo() {};
-
-			virtual void done ( const char* /*URL*/, void * data, unsigned int size, bool complete );
-			void setPlayerId(int playerId);
-
-	private:
-			std::vector<int> _playerIds;
+			virtual void showDataOK(int playerId, bzAPIStringList* data);
 };
 
-void TopZelo::setPlayerId(int playerId)
+
+void TopZelo::showDataOK(int playerId, bzAPIStringList* data)
 {
-	_playerIds.push_back(playerId);
-}
+	bz_sendTextMessage ( BZ_SERVER, playerId,"Zelo score ranking");
+	bz_sendTextMessage ( BZ_SERVER, playerId,"-------------------------------------------");
+	bz_sendTextMessagef ( BZ_SERVER, playerId,"%-4s %-32s %-4s", "Pos", "Player", "Zelo");
+	bz_sendTextMessagef ( BZ_SERVER, playerId,"%-4s %-32s %-4s", "---", "------", "----");
 
-void TopZelo::done ( const char* /*URL*/, void * data, unsigned int size, bool complete )
-{
-
-	int _playerId = _playerIds[0];
-	_playerIds.erase(_playerIds.begin());
-
-	if ( size )
+	for ( unsigned int i = 1; i < data->size(); i++)
 	{
-		std::string _data; 
+		bzAPIStringList* topZeloList = bz_newStringList();
+		topZeloList->tokenize(data->get(i).c_str(), "\t", 3, false);
 
-		_data.append((char*)data, size);
+		bz_sendTextMessagef ( BZ_SERVER, playerId,"%-4s %-32s %-4s", topZeloList->get(0).c_str(), 
+											topZeloList->get(1).c_str(),topZeloList->get(2).c_str());
 
-		if (is_valid_status(_data))	
-		{
-			bzAPIStringList* dataList = bz_newStringList();
-			dataList->tokenize(_data.c_str(), "\r\n");
-
-			if (dataList->get(0) == "OK") 
-			{
-				bz_sendTextMessage ( BZ_SERVER, _playerId,"Zelo score ranking");
-				bz_sendTextMessage ( BZ_SERVER, _playerId,"-------------------------------------------");
-				bz_sendTextMessagef ( BZ_SERVER, _playerId,"%-4s %-32s %-4s", "Pos", "Player", "Zelo");
-				bz_sendTextMessagef ( BZ_SERVER, _playerId,"%-4s %-32s %-4s", "---", "------", "----");
-
-				for ( unsigned int i = 1; i < dataList->size(); i++)
-				{
-					bzAPIStringList* topZeloList = bz_newStringList();
-					topZeloList->tokenize(dataList->get(i).c_str(), "\t", 3, false);
-
-					bz_sendTextMessagef ( BZ_SERVER, _playerId,"%-4s %-32s %-4s", topZeloList->get(0).c_str(), 
-																		topZeloList->get(1).c_str(),topZeloList->get(2).c_str());
-
-					bz_deleteStringList(topZeloList);
-				}
-
-				bz_sendTextMessage ( BZ_SERVER, _playerId,"-------------------------------------------");
-			}
-
-			if (dataList->get(0) == "NOK")
-					bz_sendTextMessagef ( BZ_SERVER, _playerId,"%s", dataList->get(1).c_str());
-
-			bz_deleteStringList(dataList);
-		}
-		else
-			bz_sendTextMessage (BZ_SERVER, _playerId,"no valid data was returned");
+		bz_deleteStringList(topZeloList);
 	}
 
+	bz_sendTextMessage ( BZ_SERVER, playerId,"-------------------------------------------");
 }
 
-
-///
-/// Class Report
-/// The Report class handles match score reporting
-///
-
-class Report : public bz_URLHandler
-{
-
-	public:
-			Report() { _playerIds.clear();};
-			~Report() {};
-			virtual void done ( const char* /*URL*/, void * data, unsigned int size, bool complete );
-			virtual void error ( const char* /*URL*/, int /*errorCode*/, const char * /*errorString*/ );
-			void setPlayerId(int playerId);
-
-	private:
-			std::vector<int> _playerIds;
-
-
-};
-
-void Report::setPlayerId(int playerId)
-{
-	_playerIds.push_back(playerId);
-}
-
-void Report::done ( const char* /*URL*/, void * data, unsigned int size, bool complete )
-{
-
-	int _playerId = _playerIds[0];
-	_playerIds.erase(_playerIds.begin());
-
-	if ( size )
-	{
-		std::string _data; 
-
-		_data.append((char*)data, size);
-
-		if (is_valid_status(_data))	
-		{
-			bzAPIStringList* dataList = bz_newStringList();
-			dataList->tokenize(_data.c_str(), "\r\n");
-
-			if (dataList->get(0) == "OK") 
-				for ( unsigned int i = 1; i < dataList->size(); i++)
-					bz_sendTextMessagef ( BZ_SERVER, _playerId,"%s", dataList->get(i).c_str());
-
-			if (dataList->get(0) == "NOK")
-				for ( unsigned int i = 1; i < dataList->size(); i++)
-					bz_sendTextMessagef ( BZ_SERVER, _playerId,"%s", dataList->get(i).c_str());
-
-			bz_deleteStringList(dataList);
-		}
-		else
-			bz_sendTextMessage (BZ_SERVER, _playerId,"no valid data was returned");
-	}
-	else
-		bz_sendTextMessage (BZ_SERVER, _playerId,"no valid data was returned");
-
-}
-
-void Report::error ( const char* /*URL*/, int errorCode, const char * errorString )
-{
-
-	int _playerId = _playerIds[0];
-	_playerIds.erase(_playerIds.begin());
-	 bz_sendTextMessagef(BZ_SERVER, _playerId,"Reporting failed with errorcode = %d - %s  !!",errorCode, errorString);
-}
-
-
-///
-/// Class Register
-/// The Register class handles player registration.
-///
-
-
-class Register : public bz_URLHandler
-{
-	public:
-
-			Register() { _playerIds.clear(); };
-			~Register() {}; 
-
-			void setPlayerId(int playerId);
-
-			virtual void done ( const char* /*URL*/, void * data, unsigned int size, bool complete );
-			virtual void error ( const char* /*URL*/, int /*errorCode*/, const char * /*errorString*/ );
-
-	private:
-			std::vector<int> _playerIds;
-};
-
-void Register::setPlayerId(int playerId)
-{
-	_playerIds.push_back(playerId);
-}
-
-
-void Register::done ( const char* /*URL*/, void * data, unsigned int size, bool complete )
-{
-
-	int _playerId = _playerIds[0];
-	_playerIds.erase(_playerIds.begin());
-
-	if ( size )
-	{
-		std::string _data; 
-
-		_data.append((char*)data, size);
-
-		if (is_valid_status(_data))	
-		{
-			bzAPIStringList* dataList = bz_newStringList();
-			dataList->tokenize(_data.c_str(), "\r\n");
-
-			if (dataList->get(0) == "OK") 
-				for ( unsigned int i = 1; i < dataList->size(); i++)
-					bz_sendTextMessagef ( BZ_SERVER, _playerId,"%s", dataList->get(i).c_str());
-
-			if (dataList->get(0) == "NOK")
-				for ( unsigned int i = 1; i < dataList->size(); i++)
-					bz_sendTextMessagef ( BZ_SERVER, _playerId,"%s", dataList->get(i).c_str());
-
-			bz_deleteStringList(dataList);
-		}
-		else
-			bz_sendTextMessage (BZ_SERVER, _playerId,"no valid data was returned");
-	}
-}
-
-
-void Register::error ( const char* /*URL*/, int errorCode, const char * errorString )
-{
-
-	int _playerId = _playerIds[0];
-	_playerIds.erase(_playerIds.begin());
-	 bz_sendTextMessagef(BZ_SERVER, _playerId,"Registration failed with errorcode = %d - %s  !!",errorCode, errorString);
-}
 
 class OneVsOne : public bz_EventHandler, public bz_CustomSlashCommandHandler
 {
@@ -494,11 +334,11 @@ class OneVsOne : public bz_EventHandler, public bz_CustomSlashCommandHandler
 			
 	private:
 
-			Register registerHandler;
-			Report reportHandler;
 			PlayerInfo playerInfoHandler;
 			TopScore topScoreHandler;
 			TopZelo topZeloHandler;
+			BaseUrlHandler registerHandler;
+			BaseUrlHandler reportHandler;
 
 			void logRecordMatch(const char * label, int winner, int loser);
 			void registerPlayer(int p, bzAPIStringList*);
@@ -583,7 +423,7 @@ void OneVsOne::getTopScore(int playerID, bzAPIStringList* params)
 	else
 		{
 			bz_PlayerRecord *playerRecord;
-			std::string items = "0";
+			std::string items = "";
 
 			playerRecord = bz_getPlayerByIndex ( playerID );
 
@@ -612,7 +452,7 @@ void OneVsOne::getTopZelo(int playerID, bzAPIStringList* params)
 	else
 		{
 			bz_PlayerRecord *playerRecord;
-			std::string items = "0";
+			std::string items = "";
 
 			playerRecord = bz_getPlayerByIndex ( playerID );
 
@@ -650,7 +490,7 @@ void  OneVsOne::showHelp(int playerID, bzApiString action)
 		{
 			bz_sendTextMessage( BZ_SERVER, playerID,"Usage: /ovso <action> <params>" );
 			bz_sendTextMessage( BZ_SERVER, playerID,"" );
-			bz_sendTextMessage( BZ_SERVER, playerID,"actions:" );
+			bz_sendTextMessage( BZ_SERVER, playerID,"action:" );
 			bz_sendTextMessage( BZ_SERVER, playerID,"" );
 			bz_sendTextMessage( BZ_SERVER, playerID," help [<action>] 1vs1 help" );
 			bz_sendTextMessage( BZ_SERVER, playerID," register <valid emailaddress>  1vs1 league registration" );
