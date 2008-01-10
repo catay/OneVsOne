@@ -280,10 +280,10 @@ void TopScore::showDataOK(int playerId, bzAPIStringList* data)
 		bzAPIStringList* topScoreList = bz_newStringList();
 		topScoreList->tokenize(data->get(i).c_str(), "\t", 3, false);
 
-		bz_sendTextMessagef ( BZ_SERVER, playerId,"%-4s %-32s %-4s", topScoreList->get(0).c_str(), 
+		bz_sendTextMessagef ( BZ_SERVER, playerId,"%-4s %-32s %5s", topScoreList->get(0).c_str(), 
 		topScoreList->get(1).c_str(),topScoreList->get(2).c_str());
 
-		bz_debugMessagef ( DEBUG_LEVEL,"%-4s %-32s %-4s", topScoreList->get(0).c_str(), 
+		bz_debugMessagef ( DEBUG_LEVEL,"%-4s %-32s %5s", topScoreList->get(0).c_str(), 
 		topScoreList->get(1).c_str(),topScoreList->get(2).c_str());
 		bz_deleteStringList(topScoreList);
 	}
@@ -307,8 +307,8 @@ void TopZelo::showDataOK(int playerId, bzAPIStringList* data)
 {
 	bz_sendTextMessage ( BZ_SERVER, playerId,"Zelo score ranking");
 	bz_sendTextMessage ( BZ_SERVER, playerId,"-------------------------------------------");
-	bz_sendTextMessagef ( BZ_SERVER, playerId,"%-4s %-32s %-4s", "Pos", "Player", "Zelo");
-	bz_sendTextMessagef ( BZ_SERVER, playerId,"%-4s %-32s %-4s", "---", "------", "----");
+	bz_sendTextMessagef ( BZ_SERVER, playerId,"%-4s %-32s %4s", "Pos", "Player", "Zelo");
+	bz_sendTextMessagef ( BZ_SERVER, playerId,"%-4s %-32s %4s", "---", "------", "----");
 
 	for ( unsigned int i = 1; i < data->size(); i++)
 	{
