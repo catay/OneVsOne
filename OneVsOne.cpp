@@ -24,7 +24,7 @@ BZ_GET_PLUGIN_VERSION
 // class Arena
 //
 
-//class Player
+//class Player : public bz_PlayerRecord
 //{
 //	private:
 //
@@ -900,7 +900,7 @@ bool OneVsOne::handle ( int playerID, bzApiString cmd, bzApiString msg, bzAPIStr
 	cmd.tolower();
 	msg.tolower();
 
-	if ( strcasecmp ( cmd.c_str(), "official") == 0 ) {
+	if ( cmd == "official") {
 
 		bz_PlayerRecord *playerRecord;
 	  	playerRecord = bz_getPlayerByIndex( playerID );
@@ -946,7 +946,7 @@ bool OneVsOne::handle ( int playerID, bzApiString cmd, bzApiString msg, bzAPIStr
 		return true;
 	}
 
-	if ( strcasecmp ( cmd.c_str(), "contest" ) == 0) {
+	if ( cmd == "contest" ) {
 
 		bz_PlayerRecord *playerRecord;
 	  	playerRecord = bz_getPlayerByIndex ( playerID );
@@ -992,7 +992,7 @@ bool OneVsOne::handle ( int playerID, bzApiString cmd, bzApiString msg, bzAPIStr
 		return true;
 	}
 
-	if ( strcasecmp ( cmd.c_str(), "setlives" ) == 0) {
+	if ( cmd == "setlives" ) {
 
 		if (! bz_hasPerm(playerID,"SETLIVES")) {
         	bz_sendTextMessagef (BZ_SERVER, playerID, "You do not have permission to run the setlives command");
