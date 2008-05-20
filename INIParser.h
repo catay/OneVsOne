@@ -12,12 +12,14 @@ typedef std::map<std::string,Parameters> Sections;
 class INIParser
 {
   public:
-    INIParser(char * iniFile);
+    INIParser(const char * iniFile);
     ~INIParser() {};
 
     bool parse();
     Parameters & getParameters(char * section);
     std::string & getValue(char * section, char * name);
+    bool isSection(char * section);
+    bool isValue(char * section, char * name);
 
   private:
 

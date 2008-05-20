@@ -1,7 +1,7 @@
 
 #include "INIParser.h"
 
-INIParser::INIParser(char * iniFile)
+INIParser::INIParser(const char * iniFile)
 {
   _iniFile = iniFile;
 }
@@ -101,6 +101,21 @@ Parameters & INIParser::getParameters(char * section)
 {
   return sections[section];
 }
+
+bool INIParser::isSection(char * section)
+{
+  return ( sections.count(section) > 0 );
+}
+
+bool INIParser::isValue(char * section, char * name)
+{
+  if ( isSection(section) > 0 )
+    if ( sections[section].count(name) > 0 )
+      return true;
+
+  return false;
+}
+
 
 /*
 int main () 

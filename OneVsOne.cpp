@@ -110,7 +110,7 @@ std::string homeurl = "http://1vs1.bzleague.com/scripts/plugin_bot.php";
 // default lives 
 int LIVES=10;
 // if "none", scores will be written to debug level 2
-char LOGFILE[512]="none";
+std::string LOGFILE ="none";
 
 /// HELPER STUFF ///
 
@@ -225,7 +225,6 @@ void OneVsOne::getTopZelo(int playerID, bzAPIStringList* params)
       items = bz_urlEncode(params->get(1).c_str());
 
     std::string  topzelodata = std::string("action=topzelo&items=") + items;
-
 
     topZeloHandler.setPlayerId(playerID);
 					
@@ -399,9 +398,9 @@ bool contestMatch()
 
 void saveScores(char * scores)
 {
-  if ( strcmp(LOGFILE,"none") ) {
+  if ( LOGFILE == "none" )  {
     std::ofstream myfile;	
-    myfile.open(LOGFILE, std::ios::out | std::ios::app | std::ios::binary);
+    myfile.open(LOGFILE.c_str(), std::ios::out | std::ios::app | std::ios::binary);
     myfile << scores;
     myfile.close();
   } else 
@@ -554,7 +553,6 @@ void OneVsOne::process ( bz_EventData *eventData )
 
 bool OneVsOne::handle ( int playerID, bzApiString cmd, bzApiString msg, bzAPIStringList* cmdParams )
 {
-
   // transfrom to lowercase
   cmd.tolower();
   msg.tolower();
@@ -714,16 +712,17 @@ bool OneVsOne::handle ( int playerID, bzApiString cmd, bzApiString msg, bzAPIStr
 
 BZF_PLUGIN_CALL int bz_Load ( const char* commandLine )
 {
-  bzAPIStringList* cmdLine = bz_newStringList();
+  std::string cmdLine = commandLine;
 
-  cmdLine->tokenize(commandLine, ",", 2, false);
+  if (cmdLine.size()) {
+    INIParser config = INIParser(cmdLine.c_str());
+    config.parse();
 
-  if (cmdLine->size() == 2) {
-    LIVES=atoi(cmdLine->get(0).c_str());
-    strcpy(LOGFILE,cmdLine->get(1).c_str());
-  } else if (cmdLine->size() == 1)
-    LIVES=atoi(cmdLine->get(0).c_str());
+    LIVES = atoi(config.getValue("general", "max_lives").c_str());
+    LOGFILE = config.getValue("logging", "logfile");
 
+  }   
+  
   bz_registerCustomSlashCommand ("official", &oneVsOne);
   bz_registerCustomSlashCommand ("contest", &oneVsOne);
   bz_registerCustomSlashCommand ("setlives", &oneVsOne);
