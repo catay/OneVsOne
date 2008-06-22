@@ -95,6 +95,7 @@ typedef struct {
 	std::string callsign;
 	bool official;
 	bool contest;
+	std::string matchType;
 } OneVsOnePlayer;
 
 std::map<int, OneVsOnePlayer> Players;
@@ -120,24 +121,29 @@ std::string LOGFILE ="none";
 class OneVsOne : public bz_EventHandler, public bz_CustomSlashCommandHandler
 {
   public:
+    Parameters gameTypes;
+
     virtual void process ( bz_EventData *eventData );
     virtual bool handle ( int playerID, bzApiString, bzApiString, bzAPIStringList*);
+
   protected:
 			
   private:
 
-  PlayerInfo playerInfoHandler;
-  TopScore topScoreHandler;
-  TopZelo topZeloHandler;
-  BaseUrlHandler registerHandler;
-  BaseUrlHandler reportHandler;
+    // reporting/info handlers
+    PlayerInfo playerInfoHandler;
+    TopScore topScoreHandler;
+    TopZelo topZeloHandler;
+    BaseUrlHandler registerHandler;
+    BaseUrlHandler reportHandler;
 
-  void logRecordMatch(const char * label, int winner, int loser);
-  void registerPlayer(int p, bzAPIStringList*);
-  void getPlayerInfo(int p, bzAPIStringList*);
-  void getTopScore(int p, bzAPIStringList*);
-  void getTopZelo(int p, bzAPIStringList*);
-  void showHelp(int p, bzApiString action = "all");
+    void logRecordMatch(const char * label, int winner, int loser);
+    void registerPlayer(int p, bzAPIStringList*);
+    void getPlayerInfo(int p, bzAPIStringList*);
+    void getTopScore(int p, bzAPIStringList*);
+    void getTopZelo(int p, bzAPIStringList*);
+    void showHelp(int p, bzApiString action = "all");
+
 };
 
 OneVsOne oneVsOne;
@@ -721,10 +727,20 @@ BZF_PLUGIN_CALL int bz_Load ( const char* commandLine )
     LIVES = atoi(config.getValue("general", "max_lives").c_str());
     LOGFILE = config.getValue("logging", "logfile");
 
+    oneVsOne.gameTypes = config.getParameters("commands");
+
   }   
+  else {
+    oneVsOne.gameTypes["official"] = "official";
+  }
+
+  Parameters::iterator it = oneVsOne.gameTypes.begin();
   
-  bz_registerCustomSlashCommand ("official", &oneVsOne);
-  bz_registerCustomSlashCommand ("contest", &oneVsOne);
+  // register the different game types
+  for ( ; it != oneVsOne.gameTypes.end(); it++ ) { 
+    bz_registerCustomSlashCommand ((*it).first.c_str(), &oneVsOne);
+  }
+
   bz_registerCustomSlashCommand ("setlives", &oneVsOne);
   bz_registerCustomSlashCommand ("ovso", &oneVsOne);
 
@@ -736,12 +752,17 @@ BZF_PLUGIN_CALL int bz_Load ( const char* commandLine )
   bz_debugMessage( DEBUG_LEVEL, "OneVsOne plugin loaded" );
 
   return 0;
-  }
+}
 
 BZF_PLUGIN_CALL int bz_Unload ( void )
-{
-  bz_removeCustomSlashCommand ("official");
-  bz_removeCustomSlashCommand ("contest");
+{  
+  Parameters::iterator it = oneVsOne.gameTypes.begin();
+  
+  // deregister the different game types
+  for ( ; it != oneVsOne.gameTypes.end(); it++ ) { 
+    bz_removeCustomSlashCommand ((*it).first.c_str());
+  }
+
   bz_removeCustomSlashCommand ("setlives");
   bz_removeCustomSlashCommand ("ovso");
 
@@ -762,3 +783,4 @@ BZF_PLUGIN_CALL int bz_Unload ( void )
 // indent-tabs-mode: t ***
 // End: ***
 // ex: shiftwidth=2 tabstop=8
+    
