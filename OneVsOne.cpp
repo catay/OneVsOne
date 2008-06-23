@@ -153,26 +153,24 @@ OneVsOne oneVsOne;
 
 bool OneVsOne::IsMatchInProgress()
 {
-  bool inProgress = false;
 
-  if ( Players.size() == MAX_PLAYERS ) {
-    inProgress = true;
-    std::map<int,OneVsOnePlayer>::iterator it = Players.begin();
+  if ( Players.size() != MAX_PLAYERS ) 
+    return false;
 
-    std::string matchType = (*it).second.matchType;
+  std::map<int,OneVsOnePlayer>::iterator it = Players.begin();
 
-    if ( ! matchType.empty()) {
-      for( ; it != Players.end(); it++ ) { 
-	if ( (*it).second.matchType != matchType ) {
-	  bz_debugMessagef ( 2,"%s IsMatchInProgress ::false", DEBUG_TAG );
-	  inProgress = false;
-	  break;
-	}
+  std::string matchType = (*it).second.matchType;
+
+  if ( ! matchType.empty()) {
+    for( ; it != Players.end(); it++ ) {
+      if ( (*it).second.matchType != matchType ) {
+	bz_debugMessagef ( 2,"%s IsMatchInProgress ::false", DEBUG_TAG );
+	return false;
       }
     }
   }
 
-  return inProgress;
+  return true;
 }  
 
 void OneVsOne::registerPlayer(int playerID, bzAPIStringList* params)
