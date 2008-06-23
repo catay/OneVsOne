@@ -450,7 +450,7 @@ void OneVsOne::logRecordMatch(std::string mType, int winner, int loser)
   bz_freePlayerRecord ( playerRecord );
 
   //format scores 
-  sprintf( scores,"%s\t%s\t%s\t-\t%s\t%d\t-\t%d\t%s\t-\t%s\n", mType.c_str(),gameTypes[mType].c_str(),match_date,Players[winner].callsign.c_str(), 
+  sprintf( scores,"%s\t%s\t%s\t%s\t-\t%s\t%d\t-\t%d\t%s\t-\t%s\n", mType.c_str(),gameTypes[mType].c_str(),match_date,Players[winner].callsign.c_str(), 
       Players[loser].callsign.c_str(),Players[loser].losses,Players[winner].losses, wbzid.c_str(),lbzid.c_str());
 
   reportData = std::string ("action=report") + std::string("&type=") + std::string(bz_urlEncode(mType.c_str())) + 
