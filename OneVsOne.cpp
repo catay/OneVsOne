@@ -137,6 +137,9 @@ class OneVsOne : public bz_EventHandler, public bz_CustomSlashCommandHandler
     BaseUrlHandler registerHandler;
     BaseUrlHandler reportHandler;
 
+    // issers
+    bool IsMatchInProgress();
+
     void logRecordMatch(const char * label, int winner, int loser);
     void registerPlayer(int p, bzAPIStringList*);
     void getPlayerInfo(int p, bzAPIStringList*);
@@ -147,6 +150,27 @@ class OneVsOne : public bz_EventHandler, public bz_CustomSlashCommandHandler
 };
 
 OneVsOne oneVsOne;
+
+bool OneVsOne::IsMatchInProgress()
+{
+  bool inProgress = false;
+
+  if ( Players.size() == MAX_PLAYERS ) {
+    inProgress = true;
+    std::map<int,OneVsOnePlayer>::iterator it = Players.begin();
+
+    std::string matchType = (*it).second.matchType;
+
+    for( ; it != Players.end(); it++ ) { 
+      if ( (*it).second.matchType != matchType ) {
+	inProgress = false;
+	break;
+      }
+    }
+  }
+
+  return inProgress;
+}  
 
 void OneVsOne::registerPlayer(int playerID, bzAPIStringList* params)
 {
@@ -563,37 +587,39 @@ bool OneVsOne::handle ( int playerID, bzApiString cmd, bzApiString msg, bzAPIStr
   cmd.tolower();
   msg.tolower();
 
-  if ( cmd == "official") {
+  Parameters::iterator matchType = gameTypes.find(cmd.c_str());
+
+  if ( matchType != gameTypes.end()) {
     bz_PlayerRecord *playerRecord;
     playerRecord = bz_getPlayerByIndex( playerID );
 
     if ( playerRecord->team == eObservers ) {
-      bz_sendTextMessagef ( BZ_SERVER, playerID,"Observers obviously can't play official matches ;)" );
+      bz_sendTextMessagef ( BZ_SERVER, playerID,"Observers obviously can't play matches of the type %s ;)", (*matchType).first.c_str());
       return true;
     }
 		
-    if ( ! playerRecord->globalUser ) {
-      bz_sendTextMessagef ( BZ_SERVER, playerID,"You must be registered and identified to play official matches" );
-      return true;
-    }
+    //if ( ! playerRecord->globalUser ) {
+    // bz_sendTextMessagef ( BZ_SERVER, playerID,"You must be registered and identified to play official matches" );
+    //  return true;
+   // }
 
     if ( Players[playerID].losses != 0 ) {
-      bz_sendTextMessagef ( BZ_SERVER, playerID,"You have to declare the match official before you start playing" );
+      bz_sendTextMessagef ( BZ_SERVER, playerID,"You have to declare the match type BEFORE you start playing" );
       return true;
     }
 
-    if ( ! contestMatch () ) {
-      Players[playerID].official = true;	
-      Players[playerID].contest = false;	
+    if ( ! IsMatchInProgress () ) {
+      Players[playerID].matchType = (*matchType).first;	
     } else {
-      bz_sendTextMessagef ( BZ_SERVER, playerID,"There is already a contest match in progress ..." );
+      //bz_sendTextMessagef ( BZ_SERVER, playerID,"There is already a match of the type %s in progress ...", (*matchType).first.c_str());
+      bz_sendTextMessagef ( BZ_SERVER, playerID,"There is already a match in progress ...");
       return true;
     }
 
-    bz_sendTextMessagef ( BZ_SERVER, BZ_ALLUSERS,"%s declared to play an official match",playerRecord->callsign.c_str() );
+    bz_sendTextMessagef ( BZ_SERVER, BZ_ALLUSERS,"%s declared to play a match of the type %s", (*matchType).first.c_str());
 
-    if ( officialMatch () ) {
-      bz_sendTextMessagef ( BZ_SERVER, BZ_ALLUSERS,"All current players asked to play official." );
+    if ( IsMatchInProgress () ) {
+      bz_sendTextMessagef ( BZ_SERVER, BZ_ALLUSERS,"All current players asked to play a match of the type %s", (*matchType).first.c_str());
       if ( recording )
 	bz_stopRecBuf ();
 
@@ -602,47 +628,6 @@ bool OneVsOne::handle ( int playerID, bzApiString cmd, bzApiString msg, bzAPIStr
 
     bz_freePlayerRecord ( playerRecord );
 
-    return true;
-  }
-
-  if ( cmd == "contest" ) {
-    bz_PlayerRecord *playerRecord;
-    playerRecord = bz_getPlayerByIndex ( playerID );
-
-    if (playerRecord->team == eObservers) {
-      bz_sendTextMessagef ( BZ_SERVER, playerID,"Observers obviously can't play contest matches ;)" );
-      return true;
-    }
-		
-    if ( ! playerRecord->globalUser ) {
-      bz_sendTextMessagef ( BZ_SERVER, playerID,"You must be registered and identified to play contest matches" );
-      return true;
-    }
-
-    if ( Players[playerID].losses != 0 ) { 
-      bz_sendTextMessagef ( BZ_SERVER, playerID,"You have to declare the match a contest before you start playing");
-      return true;
-    }
-
-    if ( ! officialMatch () ) {
-      Players[playerID].contest = true;	
-      Players[playerID].official = false;
-    } else {
-      bz_sendTextMessagef ( BZ_SERVER, playerID,"There is already an official match in progress ..." );
-      return true;
-    }
-
-    bz_sendTextMessagef ( BZ_SERVER, BZ_ALLUSERS,"%s declared to play a contest match",playerRecord->callsign.c_str() );
-
-    if ( contestMatch () ) {
-      bz_sendTextMessagef ( BZ_SERVER, BZ_ALLUSERS,"All current players asked to play a contest match." );
-      if ( recording )
-	bz_stopRecBuf ();
-      
-      recording = bz_startRecBuf ();
-    }
-
-    bz_freePlayerRecord ( playerRecord );
     return true;
   }
 
