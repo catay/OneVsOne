@@ -163,6 +163,7 @@ bool OneVsOne::IsMatchInProgress()
 
     for( ; it != Players.end(); it++ ) { 
       if ( (*it).second.matchType != matchType ) {
+	bz_debugMessagef ( 2,"%s IsMatchInProgress ::false", DEBUG_TAG );
 	inProgress = false;
 	break;
       }
@@ -608,7 +609,7 @@ bool OneVsOne::handle ( int playerID, bzApiString cmd, bzApiString msg, bzAPIStr
       return true;
     }
 
-    if ( ! IsMatchInProgress () ) {
+    if ( ! IsMatchInProgress() ) {
       Players[playerID].matchType = (*matchType).first;	
     } else {
       //bz_sendTextMessagef ( BZ_SERVER, playerID,"There is already a match of the type %s in progress ...", (*matchType).first.c_str());
