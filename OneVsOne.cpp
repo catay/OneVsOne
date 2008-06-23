@@ -413,7 +413,7 @@ void OneVsOne::logRecordMatch(std::string mType, int winner, int loser)
   time_t t = time(NULL);
   tm * now = gmtime(&t);
 		  
-  char scores[100];
+  char scores[200];
   char scores_enc[200];
   char match_date[20];
 
