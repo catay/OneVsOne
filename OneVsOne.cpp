@@ -616,7 +616,7 @@ bool OneVsOne::handle ( int playerID, bzApiString cmd, bzApiString msg, bzAPIStr
       return true;
     }
 
-    bz_sendTextMessagef ( BZ_SERVER, BZ_ALLUSERS,"%s declared to play a match of the type %s", (*matchType).first.c_str());
+    bz_sendTextMessagef ( BZ_SERVER, BZ_ALLUSERS,"%s declared to play a match of the type %s", playerRecord->callsign.c_str(), (*matchType).first.c_str());
 
     if ( IsMatchInProgress () ) {
       bz_sendTextMessagef ( BZ_SERVER, BZ_ALLUSERS,"All current players asked to play a match of the type %s", (*matchType).first.c_str());
