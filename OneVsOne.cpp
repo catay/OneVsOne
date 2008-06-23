@@ -161,7 +161,7 @@ bool OneVsOne::IsMatchInProgress()
 
   std::string matchType = (*it).second.matchType;
 
-  if ( ! matchType.empty())
+  if ( matchType.empty() )
     return false;
 
   for( ; it != Players.end(); it++ ) {
