@@ -161,11 +161,13 @@ bool OneVsOne::IsMatchInProgress()
 
     std::string matchType = (*it).second.matchType;
 
-    for( ; it != Players.end(); it++ ) { 
-      if ( (*it).second.matchType != matchType ) {
-	bz_debugMessagef ( 2,"%s IsMatchInProgress ::false", DEBUG_TAG );
-	inProgress = false;
-	break;
+    if ( ! matchType.empty()) {
+      for( ; it != Players.end(); it++ ) { 
+	if ( (*it).second.matchType != matchType ) {
+	  bz_debugMessagef ( 2,"%s IsMatchInProgress ::false", DEBUG_TAG );
+	  inProgress = false;
+	  break;
+	}
       }
     }
   }
