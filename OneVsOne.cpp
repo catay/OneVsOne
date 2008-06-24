@@ -29,7 +29,6 @@ typedef struct {
 } OneVsOnePlayer;
 
 
-
 // report url
 
 std::string url = "http://catay.be/scripts/action.php";
@@ -39,10 +38,6 @@ std::string httpCommUri = "http://1vs1.bzleague.com/scripts/plugin_bot.php";
 
 //std::string url = "http://1vs1.bzleague.com/scripts/auto_match_report.php";
 
-// default lives 
-int LIVES=10;
-// if "none", scores will be written to debug level 2
-std::string LOGFILE ="none";
 
 /// HELPER STUFF ///
 
@@ -54,6 +49,8 @@ class OneVsOne : public bz_EventHandler, public bz_CustomSlashCommandHandler
   public:
     OneVsOne();
     ~OneVsOne() {};
+
+    bool readConfig(std::string fileName);
 
     Parameters gameTypes;
 
@@ -67,6 +64,11 @@ class OneVsOne : public bz_EventHandler, public bz_CustomSlashCommandHandler
     std::map<int, OneVsOnePlayer> Players;
     bool recording;
     std::string matchType;
+    std::string serverName;
+    std::string gameStyle;
+    int maxLives;
+    std::string logFile;
+    double startTime;
 
     // reporting/info handlers
     PlayerInfo playerInfoHandler;
@@ -74,6 +76,7 @@ class OneVsOne : public bz_EventHandler, public bz_CustomSlashCommandHandler
     TopZelo topZeloHandler;
     BaseUrlHandler registerHandler;
     BaseUrlHandler reportHandler;
+
 
     // issers
     bool isMatch();
@@ -101,7 +104,29 @@ OneVsOne oneVsOne;
 
 OneVsOne::OneVsOne()
 {
-  recording=false;
+  // Initialize the default values
+  recording = false;
+  serverName = "n/a";
+  gameTypes["official"] = "official";
+  maxLives = 10;
+  // if "none", scores will be written to debug level 2
+  logFile = "none";
+  gameStyle = "original";
+  startTime = 0;
+}
+
+bool OneVsOne::readConfig(std::string fileName)
+{
+  INIParser config = INIParser(fileName.c_str());
+  config.parse();
+
+  maxLives = atoi(config.getValue("general", "max_lives").c_str());
+  logFile = config.getValue("logging", "logfile");
+
+  gameStyle = config.getValue("general","style");
+
+  gameTypes.clear();
+  oneVsOne.gameTypes = config.getParameters("commands");
 }
 
 /*
@@ -259,7 +284,7 @@ void OneVsOne::printScore ( void )
 
   for ( ; it != Players.end(); it++ ) { 
 	hits = (*it).second.losses;
-	lives = LIVES - (*it).second.losses;
+	lives = maxLives - (*it).second.losses;
 
   if ( hits == 1 )
     timeMsg = "time"; 
@@ -329,13 +354,13 @@ int OneVsOne::getWinner( int playerId )
 
   int winner=-1;
 
-  if ( Players[playerId].losses == LIVES ) {
+  if ( Players[playerId].losses == maxLives ) {
     if ( Players.size() == 1 ) {
       winner=playerId;
     } else {
       std::map<int,OneVsOnePlayer>::iterator it = Players.begin(), stop = Players.end();
       for( ; it != stop; it++ ) { 
-	if ( (*it).second.losses != LIVES ) { 
+	if ( (*it).second.losses != maxLives ) { 
 	  winner = (*it).first;
 	  break;
 	}
@@ -348,9 +373,9 @@ int OneVsOne::getWinner( int playerId )
 
 void OneVsOne::saveScores(char * scores)
 {
-  if ( LOGFILE == "none" )  {
+  if ( logFile == "none" )  {
     std::ofstream myfile;	
-    myfile.open(LOGFILE.c_str(), std::ios::out | std::ios::app | std::ios::binary);
+    myfile.open(logFile.c_str(), std::ios::out | std::ios::app | std::ios::binary);
     myfile << scores;
     myfile.close();
   } else 
@@ -369,6 +394,7 @@ void OneVsOne::logRecordMatch(std::string mType, int winner, int loser)
 {
   time_t t = time(NULL);
   tm * now = gmtime(&t);
+  int duration = (int) (bz_getCurrentTime() - startTime);
 		  
   char scores[200];
   char match_date[20];
@@ -405,17 +431,24 @@ void OneVsOne::logRecordMatch(std::string mType, int winner, int loser)
   bzApiString lbzid = playerRecord->bzID;
   bz_freePlayerRecord ( playerRecord );
 
-  //format scores 
-  sprintf( scores,"%s\t%s\t%s\t%s\t-\t%s\t%d\t-\t%d\t%s\t-\t%s\n", mType.c_str(),gameTypes[mType].c_str(),match_date,Players[winner].callsign.c_str(), 
-      Players[loser].callsign.c_str(),Players[loser].losses,Players[winner].losses, wbzid.c_str(),lbzid.c_str());
+  if (bz_getPublic())
+    serverName = bz_getPublicAddr().c_str();
 
-  reportData = std::string ("action=report") + std::string("&type=") + std::string(bz_urlEncode(mType.c_str())) + 
-    std::string("&label=") + std::string(bz_urlEncode(gameTypes[mType].c_str())) +
+  // format scores 
+  sprintf( scores,"%s\t%s\t%s\t%s\t%s\t-\t%s\t%d\t-\t%d\t%s\t-\t%s\t%d\n", serverName.c_str(), gameStyle.c_str(), gameTypes[mType].c_str(),
+      match_date, Players[winner].callsign.c_str(), Players[loser].callsign.c_str(), Players[loser].losses, Players[winner].losses,
+      wbzid.c_str(), lbzid.c_str(), duration);
+
+  reportData = std::string ("action=report") + std::string("&server=") + std::string(bz_urlEncode(serverName.c_str()))
+    + std::string("&style=") + std::string(bz_urlEncode(gameStyle.c_str())) + 
+    std::string("&type=") + std::string(bz_urlEncode(gameTypes[mType].c_str())) + 
     std::string("&date=") + std::string(bz_urlEncode(match_date)) + std::string("&winner=") + 
     std::string(bz_urlEncode(Players[winner].callsign.c_str())) + std::string("&loser=") + 
     std::string(bz_urlEncode(Players[loser].callsign.c_str())) + std::string("&winner_score=") + 
     to_string(Players[loser].losses) + std::string("&loser_score=") + to_string(Players[winner].losses) + 
-    std::string("&wbzid=") + std::string(wbzid.c_str()) + std::string("&lbzid=") + std::string(lbzid.c_str());
+    std::string("&wbzid=") + std::string(wbzid.c_str()) + std::string("&lbzid=") + 
+    std::string(lbzid.c_str() + std::string("&duration=") + to_string(duration));
+
 
   saveScores( scores );
 
@@ -425,7 +458,6 @@ void OneVsOne::logRecordMatch(std::string mType, int winner, int loser)
 
   reportHandler.setPlayerId(BZ_ALLUSERS);
   bz_addURLJob(homeurl.c_str(), &reportHandler, reportData.c_str());
-
 }
 
 void OneVsOne::process ( bz_EventData *eventData )
@@ -434,8 +466,6 @@ void OneVsOne::process ( bz_EventData *eventData )
   if (eventData->eventType == bz_ePlayerJoinEvent) {
     bz_PlayerJoinPartEventData *joinData = (bz_PlayerJoinPartEventData*)eventData;
 			
-    // FIXME cause this is probably crap, superkill should be revoked for everyone
-    // in case there is a match in progress ...
     // revoking superkill perms makes sure admin/cops don't abuse it
     // when a match is in progress ;) 
     if ( bz_hasPerm ( joinData->playerID, "superkill" ))
@@ -525,15 +555,16 @@ bool OneVsOne::handle ( int playerID, bzApiString cmd, bzApiString msg, bzAPIStr
       matchType.clear();
       Players[playerID].matchType = (*matchTypeIt).first;	
     } else { 
-      bz_sendTextMessagef ( BZ_SERVER, playerID,"There is already a match in progress ... [matchtype = %s]", (*matchTypeIt).first.c_str());
+      bz_sendTextMessagef ( BZ_SERVER, playerID,"There is already a match in progress ... [match type = %s]", (*matchTypeIt).first.c_str());
       return true;
     }
 
     bz_sendTextMessagef ( BZ_SERVER, BZ_ALLUSERS,"%s declared to play a match [matchtype = %s]", playerRecord->callsign.c_str(), (*matchTypeIt).first.c_str());
 
     if ( isMatch () ) {
-      bz_sendTextMessagef ( BZ_SERVER, BZ_ALLUSERS,"All current players agreed to play a match [matchtype = %s]", (*matchTypeIt).first.c_str());
+      bz_sendTextMessagef ( BZ_SERVER, BZ_ALLUSERS,"All current players agreed to play a match [match type = %s]", (*matchTypeIt).first.c_str());
       matchType = (*matchTypeIt).first.c_str();
+      startTime = bz_getCurrentTime();
       
       if ( recording )
 	bz_stopRecBuf ();
@@ -561,8 +592,8 @@ bool OneVsOne::handle ( int playerID, bzApiString cmd, bzApiString msg, bzAPIStr
 	playerRecord = bz_getPlayerByIndex ( playerID );
 
        	if ( getHighestLoss() < lives && lives > 0 ) {
-	  LIVES=lives;
-	  bz_sendTextMessagef ( BZ_SERVER, BZ_ALLUSERS,"Life count set to %d by %s.", LIVES, playerRecord->callsign.c_str() );
+	  maxLives=lives;
+	  bz_sendTextMessagef ( BZ_SERVER, BZ_ALLUSERS,"Life count set to %d by %s.", maxLives, playerRecord->callsign.c_str() );
        	} else
 	  bz_sendTextMessagef ( BZ_SERVER, playerID,"Life count should be higher then highest player hit count.");
 
@@ -620,19 +651,8 @@ BZF_PLUGIN_CALL int bz_Load ( const char* commandLine )
 {
   std::string cmdLine = commandLine;
 
-  if (cmdLine.size()) {
-    INIParser config = INIParser(cmdLine.c_str());
-    config.parse();
-
-    LIVES = atoi(config.getValue("general", "max_lives").c_str());
-    LOGFILE = config.getValue("logging", "logfile");
-
-    oneVsOne.gameTypes = config.getParameters("commands");
-
-  }   
-  else {
-    oneVsOne.gameTypes["official"] = "official";
-  }
+  if (cmdLine.size())
+    oneVsOne.readConfig(cmdLine);
 
   Parameters::iterator it = oneVsOne.gameTypes.begin();
   
@@ -640,6 +660,7 @@ BZF_PLUGIN_CALL int bz_Load ( const char* commandLine )
   for ( ; it != oneVsOne.gameTypes.end(); it++ ) { 
     bz_registerCustomSlashCommand ((*it).first.c_str(), &oneVsOne);
   }
+
 
   bz_registerCustomSlashCommand ("setlives", &oneVsOne);
   bz_registerCustomSlashCommand ("ovso", &oneVsOne);
