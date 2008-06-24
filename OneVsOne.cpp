@@ -22,88 +22,21 @@ BZ_GET_PLUGIN_VERSION
 #define DEBUG_LEVEL 2
 
 
-// class Player
-// class Match
-// class Arena
-//
-
-//class Player : public bz_PlayerRecord
-//{
-//	private:
-//
-//		std::string _callsign;
-//		std::map<std::string, bool> _style;
-//
-//	public:
-//
-//		// constructors
-//
-//		Player(){};
-//
-//		// getters
-//		
-//		std::string getCallsign(void);
-//
-//		// setters
-//
-//		void setCallsign(std::string callsign);
-//		void setStyle(std::string style, bool);
-//
-//		// issers
-//
-//		bool hasStyle(std::string style);
-//
-//		// doers
-//
-//}
-//
-//
-//class Match
-//{
-//
-//	private:
-//
-//		int _maxLives;
-//		bool _recording;
-//
-//	public:
-//
-//		Match(){};
-//
-//		// getters
-//
-//		int getMaxLives(void);
-//
-//		// setters
-//
-//
-//
-//		// issers
-//
-//
-//
-//		// doers
-//		
-//		void stopRecording(void);
-//		void startRecording(void);
-//
-//
-//}
-
 typedef struct {
 	int losses;
 	std::string callsign;
 	std::string matchType;
 } OneVsOnePlayer;
 
-std::map<int, OneVsOnePlayer> Players;
 
-bool recording=false;
 
 // report url
 
 std::string url = "http://catay.be/scripts/action.php";
 std::string homeurl = "http://1vs1.bzleague.com/scripts/plugin_bot.php";
+
+std::string httpCommUri = "http://1vs1.bzleague.com/scripts/plugin_bot.php";
+
 //std::string url = "http://1vs1.bzleague.com/scripts/auto_match_report.php";
 
 // default lives 
@@ -119,6 +52,9 @@ std::string LOGFILE ="none";
 class OneVsOne : public bz_EventHandler, public bz_CustomSlashCommandHandler
 {
   public:
+    OneVsOne();
+    ~OneVsOne() {};
+
     Parameters gameTypes;
 
     virtual void process ( bz_EventData *eventData );
@@ -128,6 +64,8 @@ class OneVsOne : public bz_EventHandler, public bz_CustomSlashCommandHandler
 			
   private:
 
+    std::map<int, OneVsOnePlayer> Players;
+    bool recording;
     std::string matchType;
 
     // reporting/info handlers
@@ -147,13 +85,32 @@ class OneVsOne : public bz_EventHandler, public bz_CustomSlashCommandHandler
     void getTopZelo(int p, bzAPIStringList*);
     void showHelp(int p, bzApiString action = "all");
 
+    void printScore(void);
+    void printBanner(int winner, int loser);
+    void addPlayer(int playerId, const std::string callsign);
+    void delPlayer(int playerId); 
+    void setLoss(int playerId);  
+    int getHighestLoss(void);
+    int getWinner(int playerId);
+    void saveScores(char * scores);
+
+
 };
 
 OneVsOne oneVsOne;
 
+OneVsOne::OneVsOne()
+{
+  recording=false;
+}
+
+/*
+ * Isser that returns true when a match is in progress, false
+ * if not.
+ */
+
 bool OneVsOne::isMatch()
 {
-
   if ( Players.size() != MAX_PLAYERS ) 
     return false;
 
@@ -293,7 +250,7 @@ void  OneVsOne::showHelp(int playerID, bzApiString action)
   }
 }
 
-void printScore ( void )
+void OneVsOne::printScore ( void )
 {
   std::map<int,OneVsOnePlayer>::iterator it = Players.begin();
   std::string timeMsg;
@@ -317,7 +274,7 @@ void printScore ( void )
   }
 }
 
-void printBanner ( int winner, int loser )
+void OneVsOne::printBanner ( int winner, int loser )
 {
   // this makes sure that if only 1 player is playing, that player
   // always gets the 'you lose' banner.
@@ -339,23 +296,23 @@ void printBanner ( int winner, int loser )
   bz_sendTextMessagef ( BZ_SERVER, loser," \\/                                   \\/     \\/");
 }
 
-void addPlayer ( int playerId, const std::string callsign ) 
+void OneVsOne::addPlayer ( int playerId, const std::string callsign ) 
 {
   Players[playerId].callsign = callsign;
   Players[playerId].losses=0;
 }	
 
-void delPlayer(int playerId) 
+void OneVsOne::delPlayer(int playerId) 
 { 
   Players.erase(playerId);
 }
 
-void setLoss( int playerId ) 
+void OneVsOne::setLoss( int playerId ) 
 {
   Players[playerId].losses++;
 }	
 
-int getHighestLoss() 
+int OneVsOne::getHighestLoss(void) 
 {
   int highestLoss=-1;
 
@@ -367,7 +324,7 @@ int getHighestLoss()
   return highestLoss;
 }
 
-int getWinner( int playerId )
+int OneVsOne::getWinner( int playerId )
 {
 
   int winner=-1;
@@ -389,7 +346,7 @@ int getWinner( int playerId )
   return winner;
 }
 
-void saveScores(char * scores)
+void OneVsOne::saveScores(char * scores)
 {
   if ( LOGFILE == "none" )  {
     std::ofstream myfile;	
@@ -414,7 +371,6 @@ void OneVsOne::logRecordMatch(std::string mType, int winner, int loser)
   tm * now = gmtime(&t);
 		  
   char scores[200];
-  char scores_enc[200];
   char match_date[20];
 
   std::string reportData;
@@ -551,12 +507,12 @@ bool OneVsOne::handle ( int playerID, bzApiString cmd, bzApiString msg, bzAPIStr
     playerRecord = bz_getPlayerByIndex( playerID );
 
     if ( playerRecord->team == eObservers ) {
-      bz_sendTextMessagef ( BZ_SERVER, playerID,"Observers obviously can't play matches of the type %s ;)", (*matchTypeIt).first.c_str());
+      bz_sendTextMessagef ( BZ_SERVER, playerID,"Observers obviously can't play matches ;)", (*matchTypeIt).first.c_str());
       return true;
     }
 		
     //if ( ! playerRecord->globalUser ) {
-    // bz_sendTextMessagef ( BZ_SERVER, playerID,"You must be registered and identified to play official matches" );
+    // bz_sendTextMessagef ( BZ_SERVER, playerID,"You must be registered and identified to play matches" );
     //  return true;
    // }
 
@@ -569,14 +525,14 @@ bool OneVsOne::handle ( int playerID, bzApiString cmd, bzApiString msg, bzAPIStr
       matchType.clear();
       Players[playerID].matchType = (*matchTypeIt).first;	
     } else { 
-      bz_sendTextMessagef ( BZ_SERVER, playerID,"There is already a match of the type %s in progress ...", (*matchTypeIt).first.c_str());
+      bz_sendTextMessagef ( BZ_SERVER, playerID,"There is already a match in progress ... [matchtype = %s]", (*matchTypeIt).first.c_str());
       return true;
     }
 
-    bz_sendTextMessagef ( BZ_SERVER, BZ_ALLUSERS,"%s declared to play a match of the type %s", playerRecord->callsign.c_str(), (*matchTypeIt).first.c_str());
+    bz_sendTextMessagef ( BZ_SERVER, BZ_ALLUSERS,"%s declared to play a match [matchtype = %s]", playerRecord->callsign.c_str(), (*matchTypeIt).first.c_str());
 
     if ( isMatch () ) {
-      bz_sendTextMessagef ( BZ_SERVER, BZ_ALLUSERS,"All current players asked to play a match of the type %s", (*matchTypeIt).first.c_str());
+      bz_sendTextMessagef ( BZ_SERVER, BZ_ALLUSERS,"All current players agreed to play a match [matchtype = %s]", (*matchTypeIt).first.c_str());
       matchType = (*matchTypeIt).first.c_str();
       
       if ( recording )
