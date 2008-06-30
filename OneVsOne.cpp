@@ -31,10 +31,8 @@ typedef struct {
 
 // report url
 
-std::string url = "http://catay.be/scripts/action.php";
-std::string homeurl = "http://1vs1.bzleague.com/scripts/plugin_bot.php";
+// std::string httpUri = "http://catay.be/scripts/action.php";
 
-std::string httpCommUri = "http://1vs1.bzleague.com/scripts/plugin_bot.php";
 
 //std::string url = "http://1vs1.bzleague.com/scripts/auto_match_report.php";
 
@@ -63,12 +61,14 @@ class OneVsOne : public bz_EventHandler, public bz_CustomSlashCommandHandler
 
     std::map<int, OneVsOnePlayer> Players;
     bool recording;
+    bool isMotd;
     std::string matchType;
     std::string serverName;
     std::string gameStyle;
     int maxLives;
     std::string logFile;
     double startTime;
+    std::string httpUri;
 
     // reporting/info handlers
     PlayerInfo playerInfoHandler;
@@ -76,6 +76,7 @@ class OneVsOne : public bz_EventHandler, public bz_CustomSlashCommandHandler
     TopZelo topZeloHandler;
     BaseUrlHandler registerHandler;
     BaseUrlHandler reportHandler;
+    BaseUrlHandler motdHandler;
 
 
     // issers
@@ -97,7 +98,6 @@ class OneVsOne : public bz_EventHandler, public bz_CustomSlashCommandHandler
     int getWinner(int playerId);
     void saveScores(char * scores);
 
-
 };
 
 OneVsOne oneVsOne;
@@ -106,12 +106,13 @@ OneVsOne::OneVsOne()
 {
   // Initialize the default values
   recording = false;
+  isMotd = false;
   serverName = "n/a";
   gameTypes["official"] = "official";
   maxLives = 10;
   // if "none", scores will be written to debug level 2
   logFile = "none";
-  gameStyle = "original";
+  gameStyle = "classic";
   startTime = 0;
 }
 
@@ -122,6 +123,11 @@ bool OneVsOne::readConfig(std::string fileName)
 
   maxLives = atoi(config.getValue("general", "max_lives").c_str());
   logFile = config.getValue("logging", "logfile");
+
+  httpUri = config.getValue("reporting", "httpuri"); 
+
+  if ( config.getValue("reporting", "motd") == "true" )
+    isMotd = true;
 
   gameStyle = config.getValue("general","style");
 
@@ -172,7 +178,7 @@ void OneVsOne::registerPlayer(int playerID, bzAPIStringList* params)
 
       registerHandler.setPlayerId(playerID);
 					
-      bz_addURLJob(homeurl.c_str(),&registerHandler, registerdata.c_str());
+      bz_addURLJob(httpUri.c_str(),&registerHandler, registerdata.c_str());
     } else 
       bz_sendTextMessagef ( BZ_SERVER, playerID,"You must be globally registered and identified to register here" );
 
@@ -194,7 +200,7 @@ void OneVsOne::getPlayerInfo(int playerID, bzAPIStringList* params)
 
     playerInfoHandler.setPlayerId(playerID);
 					
-    bz_addURLJob(homeurl.c_str(),&playerInfoHandler, playerinfodata.c_str());
+    bz_addURLJob(httpUri.c_str(),&playerInfoHandler, playerinfodata.c_str());
 
     bz_freePlayerRecord ( playerRecord );
   } else 
@@ -218,7 +224,7 @@ void OneVsOne::getTopScore(int playerID, bzAPIStringList* params)
 
     topScoreHandler.setPlayerId(playerID);
 					
-    bz_addURLJob(homeurl.c_str(),&topScoreHandler, topscoredata.c_str());
+    bz_addURLJob(httpUri.c_str(),&topScoreHandler, topscoredata.c_str());
 
     bz_freePlayerRecord ( playerRecord );
   }
@@ -241,7 +247,7 @@ void OneVsOne::getTopZelo(int playerID, bzAPIStringList* params)
 
     topZeloHandler.setPlayerId(playerID);
 					
-    bz_addURLJob(homeurl.c_str(),&topZeloHandler, topzelodata.c_str());
+    bz_addURLJob(httpUri.c_str(),&topZeloHandler, topzelodata.c_str());
 
     bz_freePlayerRecord ( playerRecord );
   }
@@ -435,9 +441,9 @@ void OneVsOne::logRecordMatch(std::string mType, int winner, int loser)
     serverName = bz_getPublicAddr().c_str();
 
   // format scores 
-  sprintf( scores,"%s\t%s\t%s\t%s\t%s\t-\t%s\t%d\t-\t%d\t%s\t-\t%s\t%d\n", serverName.c_str(), gameStyle.c_str(), gameTypes[mType].c_str(),
-      match_date, Players[winner].callsign.c_str(), Players[loser].callsign.c_str(), Players[loser].losses, Players[winner].losses,
-      wbzid.c_str(), lbzid.c_str(), duration);
+  sprintf( scores,"%s\t%s\t%s\t-\t%s\t%d\t-\t%d\t%s\t-\t%s\t%s\t%d\t%s\n", gameTypes[mType].c_str(), match_date, 
+      Players[winner].callsign.c_str(), Players[loser].callsign.c_str(), Players[loser].losses, Players[winner].losses,
+      wbzid.c_str(), lbzid.c_str(), gameStyle.c_str(), duration, serverName.c_str());
 
   reportData = std::string ("action=report") + std::string("&server=") + std::string(bz_urlEncode(serverName.c_str()))
     + std::string("&style=") + std::string(bz_urlEncode(gameStyle.c_str())) + 
@@ -449,7 +455,6 @@ void OneVsOne::logRecordMatch(std::string mType, int winner, int loser)
     std::string("&wbzid=") + std::string(wbzid.c_str()) + std::string("&lbzid=") + 
     std::string(lbzid.c_str() + std::string("&duration=") + to_string(duration));
 
-
   saveScores( scores );
 
   bz_sendTextMessagef (BZ_SERVER, BZ_ALLUSERS,"The game has been logged as match of the type %s", matchType.c_str());
@@ -457,7 +462,7 @@ void OneVsOne::logRecordMatch(std::string mType, int winner, int loser)
   // do reporting over http
 
   reportHandler.setPlayerId(BZ_ALLUSERS);
-  bz_addURLJob(homeurl.c_str(), &reportHandler, reportData.c_str());
+  bz_addURLJob(httpUri.c_str(), &reportHandler, reportData.c_str());
 }
 
 void OneVsOne::process ( bz_EventData *eventData )
@@ -465,6 +470,11 @@ void OneVsOne::process ( bz_EventData *eventData )
 
   if (eventData->eventType == bz_ePlayerJoinEvent) {
     bz_PlayerJoinPartEventData *joinData = (bz_PlayerJoinPartEventData*)eventData;
+
+    if ( isMotd ) {
+      motdHandler.setPlayerId(joinData->playerID);
+      bz_addURLJob(httpUri.c_str(), &motdHandler, "action=motd");
+    }
 			
     // revoking superkill perms makes sure admin/cops don't abuse it
     // when a match is in progress ;) 
