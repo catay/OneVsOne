@@ -17,7 +17,8 @@ class BaseUrlHandler : public bz_URLHandler
     BaseUrlHandler() 
     {
       _playerIds.clear();
-      _max_data_size = 1000000; 
+      // max data size in bytes (1MB)
+      _max_data_size = 1048576;
     };
 
     ~BaseUrlHandler() {};

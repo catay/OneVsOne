@@ -253,6 +253,11 @@ void OneVsOne::getTopZelo(int playerID, bzAPIStringList* params)
   }
 }
 
+void OneVsOne::handleMotd(int playerID, bzAPIStringList* params) 
+{
+
+}
+
 void  OneVsOne::showHelp(int playerID, bzApiString action)
 {
   action.tolower();
@@ -651,6 +656,11 @@ bool OneVsOne::handle ( int playerID, bzApiString cmd, bzApiString msg, bzAPIStr
 	getTopZelo(playerID, cmdParams);
 	return true;
       } 
+
+      if ( action == "motd" ) {
+	handleMotd(playerID, cmdParams);
+	return true;
+      }
     } 
     showHelp(playerID);
   } 
