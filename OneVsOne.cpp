@@ -101,7 +101,7 @@ class OneVsOne : public bz_EventHandler, public bz_CustomSlashCommandHandler
     int getHighestLoss(void);
     int getWinner(int playerId);
     void saveScores(char * scores);
-    void showMotdBanner(int playerId);
+    void showMotdBanner(int playerId, bool force=false);
 
 };
 
@@ -134,8 +134,10 @@ bool OneVsOne::readConfig(std::string fileName)
 
   httpUri = config.getValue("reporting", "httpuri"); 
 
-  if ( config.getValue("reporting", "motd") == "true" )
+  if ( config.getValue("reporting", "motd") == "true" ) {
     isMotd = true;
+    motdRefreshInterval = atoi(config.getValue("reporting", "motd_refresh_interval").c_str());
+  }
 
   gameStyle = config.getValue("general","style");
 
@@ -264,6 +266,30 @@ void OneVsOne::getTopZelo(int playerID, bzAPIStringList* params)
 void OneVsOne::handleMotd(int playerID, bzAPIStringList* params) 
 {
 
+  if ( params->size() ==  2 && params->get(1) == "get" ) {
+     showMotdBanner(playerID, true);
+  }
+  else if ( params->size() > 2 && params->get(1) == "set" ) { 
+    std::string msg = "action=motd&msg=";
+    for ( unsigned int i = 2; i < params->size(); i++)
+      msg += std::string(bz_urlEncode(params->get(i).c_str()));
+
+    bz_PlayerRecord *playerRecord;
+    playerRecord = bz_getPlayerByIndex(playerID);
+
+    msg += "&bzid=" + std::string(playerRecord->bzID.c_str()) + "&callsign=" + std::string(bz_urlEncode(playerRecord->callsign.c_str())) +
+      "&ip=" + std::string(bz_urlEncode(playerRecord->ipAddress.c_str()));
+
+    bz_freePlayerRecord ( playerRecord );
+
+    motdHandler.setPlayerId(playerID);
+    bz_addURLJob(httpUri.c_str(), &motdHandler, msg.c_str());
+    motdLastRefreshTime = bz_getCurrentTime();
+  }
+  else { 
+    showHelp(playerID, params->get(0));
+  }
+
 }
 
 void  OneVsOne::showHelp(int playerID, bzApiString action)
@@ -280,6 +306,8 @@ void  OneVsOne::showHelp(int playerID, bzApiString action)
     bz_sendTextMessage( BZ_SERVER, playerID,"Usage: /ovso topscore [<items>]" );
   else if (action == "topzelo")
     bz_sendTextMessage( BZ_SERVER, playerID,"Usage: /ovso topzelo [<items>]" );
+  else if (action == "motd")
+    bz_sendTextMessage( BZ_SERVER, playerID,"Usage: /ovso motd <get>|<set [message]> " );
   else {
     bz_sendTextMessage( BZ_SERVER, playerID,"Usage: /ovso <action> <params>" );
     bz_sendTextMessage( BZ_SERVER, playerID,"" );
@@ -290,6 +318,7 @@ void  OneVsOne::showHelp(int playerID, bzApiString action)
     bz_sendTextMessage( BZ_SERVER, playerID," playerinfo <callsign> [<callsign> ...] show 1vs1 info of a player" );
     bz_sendTextMessage( BZ_SERVER, playerID," topscore [<items>]  show the monthly player score ranking" );
     bz_sendTextMessage( BZ_SERVER, playerID," topzelo [<items>]  show the player zelo ranking" );
+    bz_sendTextMessage( BZ_SERVER, playerID," motd <get>|<set [message]>  get/set global message of the day" );
     bz_sendTextMessage( BZ_SERVER, playerID,"" );
   }
 }
@@ -401,11 +430,11 @@ void OneVsOne::saveScores(char * scores)
     bz_debugMessagef ( 2,"%s SCORES :: %s", DEBUG_TAG, scores );	
 }
 
-void OneVsOne::showMotdBanner(int playerId)
+void OneVsOne::showMotdBanner(int playerId, bool force)
 {
   // only get the motd from the remote server when the interval as exceeded
   // else get the cached motd
-  if ( (bz_getCurrentTime() - motdLastRefreshTime) > motdRefreshInterval ) {
+  if ( ((bz_getCurrentTime() - motdLastRefreshTime) > motdRefreshInterval) || force ) {
     motdHandler.setPlayerId(playerId);
     bz_addURLJob(httpUri.c_str(), &motdHandler, "action=motd");
     motdLastRefreshTime = bz_getCurrentTime();
