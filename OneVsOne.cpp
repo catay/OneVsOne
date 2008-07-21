@@ -87,6 +87,7 @@ class OneVsOne : public bz_EventHandler, public bz_CustomSlashCommandHandler
     void getPlayerInfo(int p, bzAPIStringList*);
     void getTopScore(int p, bzAPIStringList*);
     void getTopZelo(int p, bzAPIStringList*);
+    void handleMotd(int p, bzAPIStringList*);
     void showHelp(int p, bzApiString action = "all");
 
     void printScore(void);
