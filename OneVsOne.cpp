@@ -69,6 +69,9 @@ class OneVsOne : public bz_EventHandler, public bz_CustomSlashCommandHandler
     std::string logFile;
     double startTime;
     std::string httpUri;
+    double motdRefreshInterval;
+    double motdLastRefreshTime; 
+
 
     // reporting/info handlers
     PlayerInfo playerInfoHandler;
@@ -98,6 +101,7 @@ class OneVsOne : public bz_EventHandler, public bz_CustomSlashCommandHandler
     int getHighestLoss(void);
     int getWinner(int playerId);
     void saveScores(char * scores);
+    void showMotdBanner(int playerId);
 
 };
 
@@ -111,6 +115,9 @@ OneVsOne::OneVsOne()
   serverName = "n/a";
   gameTypes["official"] = "official";
   maxLives = 10;
+  // in seconds , default 1 hour 
+  motdRefreshInterval = 3600;
+  motdLastRefreshTime = 0;
   // if "none", scores will be written to debug level 2
   logFile = "none";
   gameStyle = "classic";
@@ -394,6 +401,18 @@ void OneVsOne::saveScores(char * scores)
     bz_debugMessagef ( 2,"%s SCORES :: %s", DEBUG_TAG, scores );	
 }
 
+void OneVsOne::showMotdBanner(int playerId)
+{
+  // only get the motd from the remote server when the interval as exceeded
+  // else get the cached motd
+  if ( (bz_getCurrentTime() - motdLastRefreshTime) > motdRefreshInterval ) {
+    motdHandler.setPlayerId(playerId);
+    bz_addURLJob(httpUri.c_str(), &motdHandler, "action=motd");
+    motdLastRefreshTime = bz_getCurrentTime();
+  }
+  else motdHandler.showDataOK(playerId);
+}
+
 template <class T>
 std::string to_string (const T& t)
 {
@@ -478,8 +497,7 @@ void OneVsOne::process ( bz_EventData *eventData )
     bz_PlayerJoinPartEventData *joinData = (bz_PlayerJoinPartEventData*)eventData;
 
     if ( isMotd ) {
-      motdHandler.setPlayerId(joinData->playerID);
-      bz_addURLJob(httpUri.c_str(), &motdHandler, "action=motd");
+      showMotdBanner(joinData->playerID);
     }
 			
     // revoking superkill perms makes sure admin/cops don't abuse it

@@ -19,20 +19,25 @@ class BaseUrlHandler : public bz_URLHandler
       _playerIds.clear();
       // max data size in bytes (1MB)
       _max_data_size = 1048576;
+
+      dataList = bz_newStringList();
     };
 
-    ~BaseUrlHandler() {};
+    ~BaseUrlHandler() { bz_deleteStringList(dataList); };
 
     virtual void done ( const char* /*URL*/, void * data, unsigned int size, bool complete );
     virtual void error ( const char* /*URL*/, int /*errorCode*/, const char * /*errorString*/ );
-    virtual void showDataOK(int playerId, bzAPIStringList* data);
-    virtual void showDataNOK(int playerId, bzAPIStringList* data);
+    virtual void showDataOK(int playerId);
+    virtual void showDataNOK(int playerId);
     void setPlayerId(int playerId);
     bool is_valid_status(const std::string& data);
 
   private:
     std::vector<int> _playerIds;
     unsigned int _max_data_size;
+
+  protected:
+    bzAPIStringList* dataList;
 };
 
 /*** 
@@ -43,7 +48,7 @@ class BaseUrlHandler : public bz_URLHandler
 class PlayerInfo : public BaseUrlHandler
 {
   public:
-    virtual void showDataOK(int playerId, bzAPIStringList* data);
+    virtual void showDataOK(int playerId);
 };
 
 /***
@@ -54,7 +59,7 @@ class PlayerInfo : public BaseUrlHandler
 class TopScore : public BaseUrlHandler
 {
   public:
-    virtual void showDataOK(int playerId, bzAPIStringList* data);
+    virtual void showDataOK(int playerId);
 };
 
 /*** 
@@ -65,11 +70,10 @@ class TopScore : public BaseUrlHandler
 class TopZelo : public BaseUrlHandler
 {
   public:
-    virtual void showDataOK(int playerId, bzAPIStringList* data);
+    virtual void showDataOK(int playerId);
 };
 
 
 #endif
-
 
 

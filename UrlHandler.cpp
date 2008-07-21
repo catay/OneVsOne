@@ -11,16 +11,14 @@ void BaseUrlHandler::done ( const char* /*URL*/, void * data, unsigned int size,
     _data.append((char*)data, size);
 
     if (is_valid_status(_data))	{
-      bzAPIStringList* dataList = bz_newStringList();
       dataList->tokenize(_data.c_str(), "\r\n");
 
       if (dataList->get(0) == "OK") 
-	showDataOK(_playerId, dataList);
+	showDataOK(_playerId);
 
       if (dataList->get(0) == "NOK")
-	showDataNOK(_playerId, dataList);
+	showDataNOK(_playerId);
 
-      bz_deleteStringList(dataList);
     }
     else {
       bz_sendTextMessage (BZ_SERVER, _playerId,"No valid data was received !");
@@ -40,15 +38,15 @@ void BaseUrlHandler::error ( const char* /*URL*/, int errorCode, const char * er
    bz_sendTextMessagef(BZ_SERVER, _playerId,"Action failed with errorcode = %d - %s  !!",errorCode, errorString);
 }
 
-void BaseUrlHandler::showDataOK(int playerId, bzAPIStringList* data)
+void BaseUrlHandler::showDataOK(int playerId)
 {
-  for ( unsigned int i = 1; i < data->size(); i++)
-    bz_sendTextMessagef ( BZ_SERVER, playerId,"%s", data->get(i).c_str());
+  for ( unsigned int i = 1; i < dataList->size(); i++)
+    bz_sendTextMessagef ( BZ_SERVER, playerId,"%s", dataList->get(i).c_str());
 }
 
-void BaseUrlHandler::showDataNOK(int playerId, bzAPIStringList* data)
+void BaseUrlHandler::showDataNOK(int playerId)
 {
-  bz_sendTextMessagef ( BZ_SERVER, playerId,"%s", data->get(1).c_str());
+  bz_sendTextMessagef ( BZ_SERVER, playerId,"%s", dataList->get(1).c_str());
 }
 
 void BaseUrlHandler::setPlayerId(int playerId)
@@ -67,11 +65,11 @@ bool BaseUrlHandler::is_valid_status(const std::string& data)
   return false;
 }
 
-void PlayerInfo::showDataOK(int playerId, bzAPIStringList* data)
+void PlayerInfo::showDataOK(int playerId)
 { 
-  for ( unsigned int i = 1; i < data->size(); i++) {
+  for ( unsigned int i = 1; i < dataList->size(); i++) {
     bzAPIStringList* playerList = bz_newStringList();
-    playerList->tokenize(data->get(i).c_str(), "\t", 6, false);
+    playerList->tokenize(dataList->get(i).c_str(), "\t", 6, false);
 
     bz_sendTextMessagef ( BZ_SERVER, playerId,"Player info for %s", playerList->get(0).c_str());
     bz_sendTextMessage ( BZ_SERVER, playerId,"-------------------------------------------");
@@ -85,7 +83,7 @@ void PlayerInfo::showDataOK(int playerId, bzAPIStringList* data)
   }
 }
 
-void TopScore::showDataOK(int playerId, bzAPIStringList* data)
+void TopScore::showDataOK(int playerId)
 {
 
   bz_sendTextMessage ( BZ_SERVER, playerId,"Monthly points ranking");
@@ -93,10 +91,10 @@ void TopScore::showDataOK(int playerId, bzAPIStringList* data)
   bz_sendTextMessagef ( BZ_SERVER, playerId,"%-4s %-32s %5s", "Pos", "Player", "Score");
   bz_sendTextMessagef ( BZ_SERVER, playerId,"%-4s %-32s %5s", "---", "------", "-----");
 
-  for ( unsigned int i = 1; i < data->size(); i++)
+  for ( unsigned int i = 1; i < dataList->size(); i++)
   {
     bzAPIStringList* topScoreList = bz_newStringList();
-    topScoreList->tokenize(data->get(i).c_str(), "\t", 3, false);
+    topScoreList->tokenize(dataList->get(i).c_str(), "\t", 3, false);
 
     bz_sendTextMessagef ( BZ_SERVER, playerId,"%-4s %-32s %5s", topScoreList->get(0).c_str(), 
     topScoreList->get(1).c_str(),topScoreList->get(2).c_str());
@@ -107,16 +105,16 @@ void TopScore::showDataOK(int playerId, bzAPIStringList* data)
   bz_sendTextMessage ( BZ_SERVER, playerId,"-------------------------------------------");
 }
 
-void TopZelo::showDataOK(int playerId, bzAPIStringList* data)
+void TopZelo::showDataOK(int playerId)
 {
   bz_sendTextMessage ( BZ_SERVER, playerId,"Zelo score ranking");
   bz_sendTextMessage ( BZ_SERVER, playerId,"-------------------------------------------");
   bz_sendTextMessagef ( BZ_SERVER, playerId,"%-4s %-32s %4s", "Pos", "Player", "Zelo");
   bz_sendTextMessagef ( BZ_SERVER, playerId,"%-4s %-32s %4s", "---", "------", "----");
 
-  for ( unsigned int i = 1; i < data->size(); i++) {
+  for ( unsigned int i = 1; i < dataList->size(); i++) {
     bzAPIStringList* topZeloList = bz_newStringList();
-    topZeloList->tokenize(data->get(i).c_str(), "\t", 3, false);
+    topZeloList->tokenize(dataList->get(i).c_str(), "\t", 3, false);
 
     bz_sendTextMessagef ( BZ_SERVER, playerId,"%-4s %-32s %-4s", topZeloList->get(0).c_str(), topZeloList->get(1).c_str(),topZeloList->get(2).c_str());
     bz_deleteStringList(topZeloList);
