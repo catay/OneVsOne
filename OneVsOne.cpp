@@ -271,8 +271,8 @@ void OneVsOne::handleMotd(int playerID, bzAPIStringList* params)
   }
   else if ( params->size() > 2 && params->get(1) == "set" ) { 
     std::string msg = "action=motd&msg=";
-    for ( unsigned int i = 2; i < params->size(); i++)
-      msg += std::string(bz_urlEncode(params->get(i).c_str()));
+
+    msg += std::string(bz_urlEncode(params->get(2).c_str()));
 
     bz_PlayerRecord *playerRecord;
     playerRecord = bz_getPlayerByIndex(playerID);
@@ -282,9 +282,11 @@ void OneVsOne::handleMotd(int playerID, bzAPIStringList* params)
 
     bz_freePlayerRecord ( playerRecord );
 
+    bz_debugMessagef ( 2,"DEBUG :: msg => %s", msg.c_str() );
+
     motdHandler.setPlayerId(playerID);
     bz_addURLJob(httpUri.c_str(), &motdHandler, msg.c_str());
-    motdLastRefreshTime = bz_getCurrentTime();
+    motdLastRefreshTime = time(NULL);
   }
   else { 
     showHelp(playerID, params->get(0));
@@ -434,10 +436,10 @@ void OneVsOne::showMotdBanner(int playerId, bool force)
 {
   // only get the motd from the remote server when the interval as exceeded
   // else get the cached motd
-  if ( ((bz_getCurrentTime() - motdLastRefreshTime) > motdRefreshInterval) || force ) {
+  if ( ((time(NULL) - motdLastRefreshTime) > motdRefreshInterval) || force ) {
     motdHandler.setPlayerId(playerId);
     bz_addURLJob(httpUri.c_str(), &motdHandler, "action=motd");
-    motdLastRefreshTime = bz_getCurrentTime();
+    motdLastRefreshTime = time(NULL);
   }
   else motdHandler.showDataOK(playerId);
 }
@@ -591,7 +593,7 @@ bool OneVsOne::handle ( int playerID, bzApiString cmd, bzApiString msg, bzAPIStr
 {
   // transfrom to lowercase
   cmd.tolower();
-  msg.tolower();
+  //msg.tolower();
 
   Parameters::iterator matchTypeIt = gameTypes.find(cmd.c_str());
 
@@ -706,7 +708,10 @@ bool OneVsOne::handle ( int playerID, bzApiString cmd, bzApiString msg, bzAPIStr
       } 
 
       if ( action == "motd" ) {
-	handleMotd(playerID, cmdParams);
+	bzAPIStringList *m = bz_newStringList();
+       	m->tokenize(msg.c_str(), " ", 3, false);
+	handleMotd(playerID, m);
+	bz_deleteStringList(m);
 	return true;
       }
     } 

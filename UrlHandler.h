@@ -20,6 +20,7 @@ class BaseUrlHandler : public bz_URLHandler
       // max data size in bytes (1MB)
       _max_data_size = 1048576;
 
+      noNOKNotify = false;
       dataList = bz_newStringList();
     };
 
@@ -31,10 +32,12 @@ class BaseUrlHandler : public bz_URLHandler
     virtual void showDataNOK(int playerId);
     void setPlayerId(int playerId);
     bool is_valid_status(const std::string& data);
+    bool setNoNoKNotify(bool notify);
 
   private:
     std::vector<int> _playerIds;
     unsigned int _max_data_size;
+    bool noNOKNotify;
 
   protected:
     bzAPIStringList* dataList;
