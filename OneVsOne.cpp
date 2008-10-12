@@ -832,7 +832,6 @@ BZF_PLUGIN_CALL int bz_Load ( const char* commandLine )
   //}
 
 
-  // bz_registerCustomSlashCommand ("setlives", &oneVsOne);
   bz_registerCustomSlashCommand ("ovso", &oneVsOne);
 
   bz_registerEvent(bz_ePlayerJoinEvent, &oneVsOne);
@@ -854,7 +853,6 @@ BZF_PLUGIN_CALL int bz_Unload ( void )
    // bz_removeCustomSlashCommand ((*it).first.c_str());
   //}
 
-  // bz_removeCustomSlashCommand ("setlives");
   bz_removeCustomSlashCommand ("ovso");
 
   bz_removeEvent(bz_ePlayerJoinEvent, &oneVsOne);
