@@ -90,7 +90,9 @@ class OneVsOne : public bz_EventHandler, public bz_CustomSlashCommandHandler
     void getPlayerInfo(int p, bzAPIStringList*);
     void getTopScore(int p, bzAPIStringList*);
     void getTopZelo(int p, bzAPIStringList*);
+    void setMatch(int p, bzAPIStringList*);
     void handleMotd(int p, bzAPIStringList*);
+    void setLives(int p, bzAPIStringList*);
     void showHelp(int p, bzApiString action = "all");
 
     void printScore(void);
@@ -263,6 +265,68 @@ void OneVsOne::getTopZelo(int playerID, bzAPIStringList* params)
   }
 }
 
+void OneVsOne::setMatch(int playerID, bzAPIStringList* params) 
+{
+  Parameters::iterator matchTypeIt;
+
+  if ( params->size() ==  2 ) {
+
+    matchTypeIt = gameTypes.find(params->get(1).c_str());
+
+    if ( matchTypeIt != gameTypes.end()) {
+      bz_PlayerRecord *playerRecord;
+      playerRecord = bz_getPlayerByIndex( playerID );
+
+      if ( playerRecord->team == eObservers ) {
+	bz_sendTextMessagef ( BZ_SERVER, playerID,"Observers obviously can't play matches ;)", (*matchTypeIt).first.c_str());
+	return;
+      }
+		
+      if ( ! playerRecord->globalUser ) {
+	bz_sendTextMessagef ( BZ_SERVER, playerID,"You must be registered and identified to play matches" );
+	return;
+      }
+
+      if ( Players[playerID].losses != 0 ) {
+	bz_sendTextMessagef ( BZ_SERVER, playerID,"You have to declare the match type BEFORE you start playing" );
+	return;
+      }
+
+      if ( ! isMatch() ) {
+	matchType.clear();
+	Players[playerID].matchType = (*matchTypeIt).first;
+      } else {
+	bz_sendTextMessagef ( BZ_SERVER, playerID,"There is already a match in progress ... [ %s ]", (*matchTypeIt).first.c_str());
+	return;
+      }
+
+      bz_sendTextMessagef ( BZ_SERVER, BZ_ALLUSERS,"%s declared to play a match [ %s ]", playerRecord->callsign.c_str(), (*matchTypeIt).first.c_str());
+
+      if ( isMatch () ) {
+	bz_sendTextMessagef ( BZ_SERVER, BZ_ALLUSERS,"All current players agreed to play a match [ %s ]", (*matchTypeIt).first.c_str());
+	matchType = (*matchTypeIt).first.c_str();
+	startTime = bz_getCurrentTime();
+      
+        if ( recording )
+	  bz_stopRecBuf ();
+
+        recording = bz_startRecBuf ();
+      }
+
+      bz_freePlayerRecord ( playerRecord );
+
+      return;
+    }
+  }
+
+  // list all availabe types 
+  bz_sendTextMessage( BZ_SERVER, playerID,"Available match types are : ");
+  matchTypeIt = gameTypes.begin();
+  for ( ; matchTypeIt != oneVsOne.gameTypes.end(); matchTypeIt++ )
+    bz_sendTextMessagef( BZ_SERVER, playerID," * %s",(*matchTypeIt).first.c_str());
+
+}
+
 void OneVsOne::handleMotd(int playerID, bzAPIStringList* params) 
 {
 
@@ -294,8 +358,37 @@ void OneVsOne::handleMotd(int playerID, bzAPIStringList* params)
 
 }
 
-void  OneVsOne::showHelp(int playerID, bzApiString action)
+void OneVsOne::setLives(int playerID, bzAPIStringList* params)
+{ 
+  if ( params->size() ==  2 && params->get(1) == "get" ) {
+    bz_sendTextMessagef ( BZ_SERVER, playerID,"Life count set to %d.", maxLives);
+  }
+  else if ( params->size() == 3 && params->get(1) == "set" ) {
+    int lives = 0;
+    std::istringstream iss(params->get(2).c_str());
+
+    if (( iss >> lives)) { 
+      bz_PlayerRecord *playerRecord; 
+      playerRecord = bz_getPlayerByIndex ( playerID );
+
+      if ( getHighestLoss() < lives && lives > 0 ) {
+	maxLives=lives;
+	bz_sendTextMessagef ( BZ_SERVER, BZ_ALLUSERS,"Life count set to %d by %s.", maxLives, playerRecord->callsign.c_str() );
+      } else
+	bz_sendTextMessagef ( BZ_SERVER, playerID,"Life count should be higher then highest player hit count.");
+      
+      bz_freePlayerRecord ( playerRecord );
+    } else
+      bz_sendTextMessagef ( BZ_SERVER, playerID,"Life count should be numerical value.");
+
+  } else 
+    showHelp(playerID, params->get(0));
+}
+
+void OneVsOne::showHelp(int playerID, bzApiString action)
 {
+  bool cfgPerm = bz_hasPerm(playerID,"OVSO_CFG");
+
   action.tolower();
 	  
   if (action == "help")
@@ -308,8 +401,12 @@ void  OneVsOne::showHelp(int playerID, bzApiString action)
     bz_sendTextMessage( BZ_SERVER, playerID,"Usage: /ovso topscore [<items>]" );
   else if (action == "topzelo")
     bz_sendTextMessage( BZ_SERVER, playerID,"Usage: /ovso topzelo [<items>]" );
-  else if (action == "motd")
+  else if (action == "motd" && cfgPerm)
     bz_sendTextMessage( BZ_SERVER, playerID,"Usage: /ovso motd <get>|<set [message]> " );
+  else if (action == "lives" && cfgPerm)
+    bz_sendTextMessage( BZ_SERVER, playerID,"Usage: /ovso lives <get>|<set [life count]> " );
+  else if (action == "reload" && cfgPerm)
+    bz_sendTextMessage( BZ_SERVER, playerID,"Usage: /ovso reload " );
   else {
     bz_sendTextMessage( BZ_SERVER, playerID,"Usage: /ovso <action> <params>" );
     bz_sendTextMessage( BZ_SERVER, playerID,"" );
@@ -320,7 +417,13 @@ void  OneVsOne::showHelp(int playerID, bzApiString action)
     bz_sendTextMessage( BZ_SERVER, playerID," playerinfo <callsign> [<callsign> ...] show 1vs1 info of a player" );
     bz_sendTextMessage( BZ_SERVER, playerID," topscore [<items>]  show the monthly player score ranking" );
     bz_sendTextMessage( BZ_SERVER, playerID," topzelo [<items>]  show the player zelo ranking" );
-    bz_sendTextMessage( BZ_SERVER, playerID," motd <get>|<set [message]>  get/set global message of the day" );
+
+    if ( cfgPerm ) {
+      bz_sendTextMessage( BZ_SERVER, playerID," motd <get>|<set [message]>  get/set global message of the day" );
+      bz_sendTextMessage( BZ_SERVER, playerID," lives <get>|<set [life count]>  get/set maximum life count" );
+      bz_sendTextMessage( BZ_SERVER, playerID," reload reloads the configuration file (not available)" );
+    }
+
     bz_sendTextMessage( BZ_SERVER, playerID,"" );
   }
 }
@@ -423,13 +526,16 @@ int OneVsOne::getWinner( int playerId )
 
 void OneVsOne::saveScores(char * scores)
 {
-  if ( logFile == "none" )  {
+  // always log the score to bzfs debug channel 
+  bz_debugMessagef ( 2,"%s SCORES :: %s", DEBUG_TAG, scores );	
+
+  // log the score also to a seperate file if configured
+  if ( logFile != "none" )  {
     std::ofstream myfile;	
     myfile.open(logFile.c_str(), std::ios::out | std::ios::app | std::ios::binary);
     myfile << scores;
     myfile.close();
-  } else 
-    bz_debugMessagef ( 2,"%s SCORES :: %s", DEBUG_TAG, scores );	
+  }  
 }
 
 void OneVsOne::showMotdBanner(int playerId, bool force)
@@ -513,12 +619,14 @@ void OneVsOne::logRecordMatch(std::string mType, int winner, int loser)
 
   saveScores( scores );
 
-  bz_sendTextMessagef (BZ_SERVER, BZ_ALLUSERS,"The game has been logged as match of the type %s", matchType.c_str());
+  bz_sendTextMessagef (BZ_SERVER, BZ_ALLUSERS,"The match has been logged [match type = %s]", matchType.c_str());
 
   // do reporting over http
 
   reportHandler.setPlayerId(BZ_ALLUSERS);
   bz_addURLJob(httpUri.c_str(), &reportHandler, reportData.c_str());
+
+  bz_debugMessagef ( 2,"%s reportHandler :: %s", DEBUG_TAG, reportData.c_str());	
 }
 
 void OneVsOne::process ( bz_EventData *eventData )
@@ -595,6 +703,7 @@ bool OneVsOne::handle ( int playerID, bzApiString cmd, bzApiString msg, bzAPIStr
   cmd.tolower();
   //msg.tolower();
 
+  /*
   Parameters::iterator matchTypeIt = gameTypes.find(cmd.c_str());
 
   if ( matchTypeIt != gameTypes.end()) {
@@ -606,10 +715,10 @@ bool OneVsOne::handle ( int playerID, bzApiString cmd, bzApiString msg, bzAPIStr
       return true;
     }
 		
-    //if ( ! playerRecord->globalUser ) {
-    // bz_sendTextMessagef ( BZ_SERVER, playerID,"You must be registered and identified to play matches" );
-    //  return true;
-   // }
+    if ( ! playerRecord->globalUser ) {
+      bz_sendTextMessagef ( BZ_SERVER, playerID,"You must be registered and identified to play matches" );
+      return true;
+    }
 
     if ( Players[playerID].losses != 0 ) {
       bz_sendTextMessagef ( BZ_SERVER, playerID,"You have to declare the match type BEFORE you start playing" );
@@ -620,14 +729,14 @@ bool OneVsOne::handle ( int playerID, bzApiString cmd, bzApiString msg, bzAPIStr
       matchType.clear();
       Players[playerID].matchType = (*matchTypeIt).first;	
     } else { 
-      bz_sendTextMessagef ( BZ_SERVER, playerID,"There is already a match in progress ... [match type = %s]", (*matchTypeIt).first.c_str());
+      bz_sendTextMessagef ( BZ_SERVER, playerID,"There is already a match in progress ... [ %s ]", (*matchTypeIt).first.c_str());
       return true;
     }
 
-    bz_sendTextMessagef ( BZ_SERVER, BZ_ALLUSERS,"%s declared to play a match [match type = %s]", playerRecord->callsign.c_str(), (*matchTypeIt).first.c_str());
+    bz_sendTextMessagef ( BZ_SERVER, BZ_ALLUSERS,"%s declared to play a match [ %s ]", playerRecord->callsign.c_str(), (*matchTypeIt).first.c_str());
 
     if ( isMatch () ) {
-      bz_sendTextMessagef ( BZ_SERVER, BZ_ALLUSERS,"All current players agreed to play a match [match type = %s]", (*matchTypeIt).first.c_str());
+      bz_sendTextMessagef ( BZ_SERVER, BZ_ALLUSERS,"All current players agreed to play a match [ %s ]", (*matchTypeIt).first.c_str());
       matchType = (*matchTypeIt).first.c_str();
       startTime = bz_getCurrentTime();
       
@@ -641,35 +750,9 @@ bool OneVsOne::handle ( int playerID, bzApiString cmd, bzApiString msg, bzAPIStr
 
     return true;
   }
+*/
 
-  if ( cmd == "setlives" ) {
-    if (! bz_hasPerm(playerID,"SETLIVES")) {
-      bz_sendTextMessagef (BZ_SERVER, playerID, "You do not have permission to run the setlives command");
-      return true;
-    } 
-
-    if ( cmdParams->size() == 1 ) { 
-      int lives = 0;
-      std::istringstream iss(cmdParams->get(0).c_str());
-
-      if (( iss >> lives)) { 
-	bz_PlayerRecord *playerRecord; 
-	playerRecord = bz_getPlayerByIndex ( playerID );
-
-       	if ( getHighestLoss() < lives && lives > 0 ) {
-	  maxLives=lives;
-	  bz_sendTextMessagef ( BZ_SERVER, BZ_ALLUSERS,"Life count set to %d by %s.", maxLives, playerRecord->callsign.c_str() );
-       	} else
-	  bz_sendTextMessagef ( BZ_SERVER, playerID,"Life count should be higher then highest player hit count.");
-
-	bz_freePlayerRecord ( playerRecord );
-       	return true;
-      }
-    }
-
-    bz_sendTextMessagef ( BZ_SERVER, playerID,"Usage: /setlives <life count>" ); 
-    return true;
-  }
+  bool cfgPerm = bz_hasPerm(playerID,"OVSO_CFG");
 
   if ( cmd == "ovso") {
     if ( cmdParams->size() >= 1 ) {
@@ -706,13 +789,27 @@ bool OneVsOne::handle ( int playerID, bzApiString cmd, bzApiString msg, bzAPIStr
 	getTopZelo(playerID, cmdParams);
 	return true;
       } 
+     
+      if ( action == "match") {
+	setMatch(playerID, cmdParams);
+	return true;
+      } 
 
-      if ( action == "motd" ) {
+      if ( action == "motd" && cfgPerm ) {
 	bzAPIStringList *m = bz_newStringList();
        	m->tokenize(msg.c_str(), " ", 3, false);
 	handleMotd(playerID, m);
 	bz_deleteStringList(m);
 	return true;
+      } 
+      
+      if ( action == "lives" && cfgPerm ) {
+	setLives(playerID, cmdParams);
+       	return true;
+      }
+
+      if ( action == "reload" && cfgPerm ) {
+       	return true;
       }
     } 
     showHelp(playerID);
@@ -727,15 +824,15 @@ BZF_PLUGIN_CALL int bz_Load ( const char* commandLine )
   if (cmdLine.size())
     oneVsOne.readConfig(cmdLine);
 
-  Parameters::iterator it = oneVsOne.gameTypes.begin();
+  //Parameters::iterator it = oneVsOne.gameTypes.begin();
   
   // register the different game types
-  for ( ; it != oneVsOne.gameTypes.end(); it++ ) { 
-    bz_registerCustomSlashCommand ((*it).first.c_str(), &oneVsOne);
-  }
+  //for ( ; it != oneVsOne.gameTypes.end(); it++ ) { 
+   // bz_registerCustomSlashCommand ((*it).first.c_str(), &oneVsOne);
+  //}
 
 
-  bz_registerCustomSlashCommand ("setlives", &oneVsOne);
+  // bz_registerCustomSlashCommand ("setlives", &oneVsOne);
   bz_registerCustomSlashCommand ("ovso", &oneVsOne);
 
   bz_registerEvent(bz_ePlayerJoinEvent, &oneVsOne);
@@ -750,14 +847,14 @@ BZF_PLUGIN_CALL int bz_Load ( const char* commandLine )
 
 BZF_PLUGIN_CALL int bz_Unload ( void )
 {  
-  Parameters::iterator it = oneVsOne.gameTypes.begin();
+  //Parameters::iterator it = oneVsOne.gameTypes.begin();
   
   // deregister the different game types
-  for ( ; it != oneVsOne.gameTypes.end(); it++ ) { 
-    bz_removeCustomSlashCommand ((*it).first.c_str());
-  }
+  //for ( ; it != oneVsOne.gameTypes.end(); it++ ) { 
+   // bz_removeCustomSlashCommand ((*it).first.c_str());
+  //}
 
-  bz_removeCustomSlashCommand ("setlives");
+  // bz_removeCustomSlashCommand ("setlives");
   bz_removeCustomSlashCommand ("ovso");
 
   bz_removeEvent(bz_ePlayerJoinEvent, &oneVsOne);
