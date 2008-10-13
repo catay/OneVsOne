@@ -36,8 +36,25 @@ typedef struct {
 
 //std::string url = "http://1vs1.bzleague.com/scripts/auto_match_report.php";
 
-
 /// HELPER STUFF ///
+
+template <class T>
+std::string to_string (const T& t)
+{
+  std::stringstream ss;
+  ss << t;
+  return ss.str();
+}
+
+bool replace(std::string& s,const char * orig,const char * rep )
+{
+  bool retval=false;
+  while ( s.find(orig) != std::string::npos ) {
+    s.replace(s.find(orig),std::string(orig).size(),rep);
+    retval=true;
+  }
+  return retval;
+}
 
 // function returns true when a valid status is returned.
 
@@ -338,6 +355,13 @@ void OneVsOne::handleMotd(int playerID, bzAPIStringList* params)
 
     msg += std::string(bz_urlEncode(params->get(2).c_str()));
 
+    // Dirty hack that converts \n \t \r in the correct control char code
+    // http://en.wikipedia.org/wiki/ASCII#ASCII_control_characters
+
+    replace(msg,"%5Cn","%0a");
+    replace(msg,"%5Ct","%09");
+    replace(msg,"%5Cr","%0d");
+
     bz_PlayerRecord *playerRecord;
     playerRecord = bz_getPlayerByIndex(playerID);
 
@@ -393,6 +417,8 @@ void OneVsOne::showHelp(int playerID, bzApiString action)
 	  
   if (action == "help")
     bz_sendTextMessage( BZ_SERVER, playerID,"Usage: /ovso help [<action>]" );
+  else if (action == "match") 
+    bz_sendTextMessage( BZ_SERVER, playerID,"Usage: /ovso match [<match type>]" );
   else if (action == "register") 
     bz_sendTextMessage( BZ_SERVER, playerID,"Usage: /ovso register <emailaddress>" );
   else if (action == "playerinfo")
@@ -413,6 +439,7 @@ void OneVsOne::showHelp(int playerID, bzApiString action)
     bz_sendTextMessage( BZ_SERVER, playerID,"action:" );
     bz_sendTextMessage( BZ_SERVER, playerID,"" );
     bz_sendTextMessage( BZ_SERVER, playerID," help [<action>] 1vs1 help" );
+    bz_sendTextMessage( BZ_SERVER, playerID," match [<match type>] start a match of a certain type" );
     bz_sendTextMessage( BZ_SERVER, playerID," register <valid emailaddress>  1vs1 league registration" );
     bz_sendTextMessage( BZ_SERVER, playerID," playerinfo <callsign> [<callsign> ...] show 1vs1 info of a player" );
     bz_sendTextMessage( BZ_SERVER, playerID," topscore [<items>]  show the monthly player score ranking" );
@@ -548,14 +575,6 @@ void OneVsOne::showMotdBanner(int playerId, bool force)
     motdLastRefreshTime = time(NULL);
   }
   else motdHandler.showDataOK(playerId);
-}
-
-template <class T>
-std::string to_string (const T& t)
-{
-  std::stringstream ss;
-  ss << t;
-  return ss.str();
 }
 
 void OneVsOne::logRecordMatch(std::string mType, int winner, int loser)
