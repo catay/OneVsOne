@@ -12,12 +12,7 @@ void BaseUrlHandler::done ( const char* /*URL*/, void * data, unsigned int size,
 
     if (is_valid_status(_data))	{
       dataList->tokenize(_data.c_str(), "\r\n");
-
-      if (dataList->get(0) == "OK") 
-	showDataOK(_playerId);
-
-      if (dataList->get(0) == "NOK")
-	showDataNOK(_playerId);
+      showData(_playerId);
 
     }
     else {
@@ -49,6 +44,15 @@ void BaseUrlHandler::showDataNOK(int playerId)
   bz_sendTextMessagef ( BZ_SERVER, playerId,"%s", dataList->get(1).c_str());
 }
 
+void BaseUrlHandler::showData(int playerId) 
+{
+  if (dataList->get(0) == "OK") 
+    showDataOK(playerId);
+
+  if (dataList->get(0) == "NOK" && (! noNOKNotify) )
+    showDataNOK(playerId);
+}
+
 void BaseUrlHandler::setPlayerId(int playerId)
 {
   _playerIds.push_back(playerId);
@@ -63,6 +67,11 @@ bool BaseUrlHandler::is_valid_status(const std::string& data)
     return true;
 
   return false;
+}
+
+bool BaseUrlHandler::setNoNoKNotify(bool notify)
+{
+ noNOKNotify = notify;
 }
 
 void PlayerInfo::showDataOK(int playerId)

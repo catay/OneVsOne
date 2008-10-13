@@ -141,6 +141,8 @@ OneVsOne::OneVsOne()
   logFile = "none";
   gameStyle = "classic";
   startTime = 0;
+  
+  motdHandler.setNoNoKNotify(true);
 }
 
 bool OneVsOne::readConfig(std::string fileName)
@@ -574,7 +576,7 @@ void OneVsOne::showMotdBanner(int playerId, bool force)
     bz_addURLJob(httpUri.c_str(), &motdHandler, "action=motd");
     motdLastRefreshTime = time(NULL);
   }
-  else motdHandler.showDataOK(playerId);
+  else motdHandler.showData(playerId);
 }
 
 void OneVsOne::logRecordMatch(std::string mType, int winner, int loser)

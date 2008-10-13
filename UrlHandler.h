@@ -30,6 +30,7 @@ class BaseUrlHandler : public bz_URLHandler
     virtual void error ( const char* /*URL*/, int /*errorCode*/, const char * /*errorString*/ );
     virtual void showDataOK(int playerId);
     virtual void showDataNOK(int playerId);
+    virtual void showData(int playerId);
     void setPlayerId(int playerId);
     bool is_valid_status(const std::string& data);
     bool setNoNoKNotify(bool notify);
