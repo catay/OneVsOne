@@ -88,7 +88,8 @@ class OneVsOne : public bz_EventHandler, public bz_CustomSlashCommandHandler
     std::string httpUri;
     double motdRefreshInterval;
     double motdLastRefreshTime; 
-
+    bool cfgPerm;
+    std::string cfgPermName;
 
     // reporting/info handlers
     PlayerInfo playerInfoHandler;
@@ -137,12 +138,14 @@ OneVsOne::OneVsOne()
   // in seconds , default 1 hour 
   motdRefreshInterval = 3600;
   motdLastRefreshTime = 0;
-  // if "none", scores will be written to debug level 2
+
   logFile = "none";
   gameStyle = "classic";
   startTime = 0;
   
   motdHandler.setNoNoKNotify(true);
+  cfgPerm =  false;
+  cfgPermName = "OVSO_CFG";
 }
 
 bool OneVsOne::readConfig(std::string fileName)
@@ -413,8 +416,6 @@ void OneVsOne::setLives(int playerID, bzAPIStringList* params)
 
 void OneVsOne::showHelp(int playerID, bzApiString action)
 {
-  bool cfgPerm = bz_hasPerm(playerID,"OVSO_CFG");
-
   action.tolower();
 	  
   if (action == "help")
@@ -773,7 +774,7 @@ bool OneVsOne::handle ( int playerID, bzApiString cmd, bzApiString msg, bzAPIStr
   }
 */
 
-  bool cfgPerm = bz_hasPerm(playerID,"OVSO_CFG");
+  cfgPerm = bz_hasPerm(playerID,cfgPermName.c_str());
 
   if ( cmd == "ovso") {
     if ( cmdParams->size() >= 1 ) {
