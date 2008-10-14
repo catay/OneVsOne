@@ -363,9 +363,9 @@ void OneVsOne::handleMotd(int playerID, bzAPIStringList* params)
     // Dirty hack that converts \n \t \r in the correct control char code
     // http://en.wikipedia.org/wiki/ASCII#ASCII_control_characters
 
-    replace(msg,"%5Cn","%0a");
-    replace(msg,"%5Ct","%09");
-    replace(msg,"%5Cr","%0d");
+    replace(msg,"%5Cn","%0a"); // \n
+    replace(msg,"%5Ct","%09"); // \t
+    replace(msg,"%5Cr","%0d"); // \r
 
     bz_PlayerRecord *playerRecord;
     playerRecord = bz_getPlayerByIndex(playerID);
