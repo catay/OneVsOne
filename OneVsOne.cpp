@@ -66,6 +66,7 @@ class OneVsOne : public bz_EventHandler, public bz_CustomSlashCommandHandler
     ~OneVsOne() {};
 
     bool readConfig(std::string fileName);
+    bool isCompat();
 
     Parameters gameTypes;
 
@@ -90,6 +91,7 @@ class OneVsOne : public bz_EventHandler, public bz_CustomSlashCommandHandler
     double motdLastRefreshTime; 
     bool cfgPerm;
     std::string cfgPermName;
+    bool compatibility;
 
     // reporting/info handlers
     PlayerInfo playerInfoHandler;
@@ -146,6 +148,8 @@ OneVsOne::OneVsOne()
   motdHandler.setNoNoKNotify(true);
   cfgPerm =  false;
   cfgPermName = "OVSO_CFG";
+
+  compatibility = true;
 }
 
 bool OneVsOne::readConfig(std::string fileName)
@@ -154,6 +158,11 @@ bool OneVsOne::readConfig(std::string fileName)
   config.parse();
 
   maxLives = atoi(config.getValue("general", "max_lives").c_str());
+  gameStyle = config.getValue("general","style");
+
+  if ( config.getValue("general", "compatibility") == "false" )
+    compatibility = false;
+
   logFile = config.getValue("logging", "logfile");
 
   httpUri = config.getValue("reporting", "httpuri"); 
@@ -163,10 +172,14 @@ bool OneVsOne::readConfig(std::string fileName)
     motdRefreshInterval = atoi(config.getValue("reporting", "motd_refresh_interval").c_str());
   }
 
-  gameStyle = config.getValue("general","style");
 
   gameTypes.clear();
   oneVsOne.gameTypes = config.getParameters("commands");
+}
+
+bool OneVsOne::isCompat()
+{
+  return compatibility;
 }
 
 /*
@@ -725,54 +738,13 @@ bool OneVsOne::handle ( int playerID, bzApiString cmd, bzApiString msg, bzAPIStr
   cmd.tolower();
   //msg.tolower();
 
-  /*
-  Parameters::iterator matchTypeIt = gameTypes.find(cmd.c_str());
-
-  if ( matchTypeIt != gameTypes.end()) {
-    bz_PlayerRecord *playerRecord;
-    playerRecord = bz_getPlayerByIndex( playerID );
-
-    if ( playerRecord->team == eObservers ) {
-      bz_sendTextMessagef ( BZ_SERVER, playerID,"Observers obviously can't play matches ;)", (*matchTypeIt).first.c_str());
-      return true;
-    }
-		
-    if ( ! playerRecord->globalUser ) {
-      bz_sendTextMessagef ( BZ_SERVER, playerID,"You must be registered and identified to play matches" );
-      return true;
-    }
-
-    if ( Players[playerID].losses != 0 ) {
-      bz_sendTextMessagef ( BZ_SERVER, playerID,"You have to declare the match type BEFORE you start playing" );
-      return true;
-    }
-
-    if ( ! isMatch() ) {
-      matchType.clear();
-      Players[playerID].matchType = (*matchTypeIt).first;	
-    } else { 
-      bz_sendTextMessagef ( BZ_SERVER, playerID,"There is already a match in progress ... [ %s ]", (*matchTypeIt).first.c_str());
-      return true;
-    }
-
-    bz_sendTextMessagef ( BZ_SERVER, BZ_ALLUSERS,"%s declared to play a match [ %s ]", playerRecord->callsign.c_str(), (*matchTypeIt).first.c_str());
-
-    if ( isMatch () ) {
-      bz_sendTextMessagef ( BZ_SERVER, BZ_ALLUSERS,"All current players agreed to play a match [ %s ]", (*matchTypeIt).first.c_str());
-      matchType = (*matchTypeIt).first.c_str();
-      startTime = bz_getCurrentTime();
-      
-      if ( recording )
-	bz_stopRecBuf ();
-
-      recording = bz_startRecBuf ();
-    }
-
-    bz_freePlayerRecord ( playerRecord );
-
-    return true;
+  if ( cmd == "official" ) {
+	bz_sendTextMessagef ( BZ_SERVER, playerID, 
+	    "The '/official' command is DEPRECATED, use '/ovso match official' from now on.");
+	cmd = "ovso";
+	cmdParams->push_back(std::string("match"));
+	cmdParams->push_back(std::string("official"));
   }
-*/
 
   cfgPerm = bz_hasPerm(playerID,cfgPermName.c_str());
 
@@ -845,17 +817,16 @@ BZF_PLUGIN_CALL int bz_Load ( const char* commandLine )
 
   if (cmdLine.size())
     oneVsOne.readConfig(cmdLine);
-
-  //Parameters::iterator it = oneVsOne.gameTypes.begin();
-  
-  // register the different game types
-  //for ( ; it != oneVsOne.gameTypes.end(); it++ ) { 
-   // bz_registerCustomSlashCommand ((*it).first.c_str(), &oneVsOne);
-  //}
-
-
+ 
   bz_registerCustomSlashCommand ("ovso", &oneVsOne);
 
+  // compatibility stuff 
+  if (oneVsOne.isCompat()) {
+    Parameters::iterator it = oneVsOne.gameTypes.find("official"); 
+    if ( it != oneVsOne.gameTypes.end() )
+      bz_registerCustomSlashCommand ((*it).first.c_str(), &oneVsOne);
+  }
+ 
   bz_registerEvent(bz_ePlayerJoinEvent, &oneVsOne);
   bz_registerEvent(bz_ePlayerPartEvent, &oneVsOne);
   bz_registerEvent(bz_ePlayerDieEvent, &oneVsOne);
@@ -868,12 +839,13 @@ BZF_PLUGIN_CALL int bz_Load ( const char* commandLine )
 
 BZF_PLUGIN_CALL int bz_Unload ( void )
 {  
-  //Parameters::iterator it = oneVsOne.gameTypes.begin();
   
-  // deregister the different game types
-  //for ( ; it != oneVsOne.gameTypes.end(); it++ ) { 
-   // bz_removeCustomSlashCommand ((*it).first.c_str());
-  //}
+  // compatibility stuff 
+  if (oneVsOne.isCompat()) {
+    Parameters::iterator it = oneVsOne.gameTypes.find("official");
+    if ( it != oneVsOne.gameTypes.end() )
+      bz_removeCustomSlashCommand ((*it).first.c_str());
+  }
 
   bz_removeCustomSlashCommand ("ovso");
 
@@ -894,4 +866,3 @@ BZF_PLUGIN_CALL int bz_Unload ( void )
 // indent-tabs-mode: t ***
 // End: ***
 // ex: shiftwidth=2 tabstop=8
-    
