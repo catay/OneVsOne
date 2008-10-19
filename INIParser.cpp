@@ -148,7 +148,7 @@ Parameters & INIParser::getParameters(char * section)
 
   Sections::iterator it_s = sections.find(section);
 
-  if ( it_s != sections.end() ) {
+//  if ( it_s != sections.end() ) {
 
   return sections[section];
 }
