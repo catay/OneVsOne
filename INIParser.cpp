@@ -6,16 +6,17 @@ INIParser::INIParser(const char * iniFile)
   _iniFile = iniFile;
 }
 
-bool INIParser::parse()
+int INIParser::parse()
 {
   
   char ch;
   char buffer[100];
   int i = 0;
+  int line = 1;
 
-  ParseState parseState;
   std::string section = "__NO_SECTION__";
   std::string name;
+  parseState = NO_SECTION;
 
   // open ini file
   std::ifstream in(_iniFile.c_str(), std::ios::in | std::ios::binary);
@@ -23,39 +24,73 @@ bool INIParser::parse()
   while ( in.get(ch) ) {
     switch (ch) {
       case '[' :
-	parseState = START_SECTION;
+	if (isStartSection())
+	  return line;
+
+	if ( i == 0 ) 
+	  parseState = START_SECTION;
+	else 
+	  return line;
+
 	break;
       case ']' :
-	if (parseState == START_SECTION && i > 0) {
+	if (isStopSection())
+	  return line;
+
+	if (isStartSection() && i > 0) {
 	  buffer[i] = '\0';
 	  section = buffer;
-	  std::cout << "section => " << buffer << std::endl;
-
+	  //std::cout << "section => " << buffer << std::endl;
 	  i=0;
+	} else { // else error , empty section [] or ] not the end of start section
+	  return line;
 	}
-	// else error
 
 	parseState = STOP_SECTION;
 	break;
       case '=' :
-	if (parseState == NEWLINE || parseState == NO_SECTION && i > 0) {
+
+	if ( isStartSection() )
+	  return line;
+
+	if ( isNoSection() && i == 0 )
+	  return line;
+
+	if ((isNewline() || isNoSection()) && i > 0) {
 	  buffer[i] = '\0';
 	  name = buffer;
-	  std::cout << "key => " << buffer << std::endl;
+	  //std::cout << "key => " << buffer << std::endl;
 	  i=0;
-	}
+	} else if (isNewline() && i == 0)
+	  	return line;
+
 	parseState = DELIMITER;
 	
 	break;
       case '\n' :
-	if ( parseState == DELIMITER && i > 0 ) {
+
+	if ( isNewline() && i > 0 )
+	  return line;
+
+	if ( isNoSection() && i > 0  )
+	  return line;
+
+	if ( isStartSection() )
+	  return line;
+
+	if ( isDelimiter() && i > 0 ) {
 	  buffer[i] = '\0';
 	  sections[section][name] = buffer;
-	  std::cout << "value => " << buffer << std::endl;
+	  //std::cout << "value => " << buffer << std::endl;
 	  i=0;
-	}
+	} else if ( isDelimiter() && i == 0 )
+		return line;
+
+	//if ( parseState != DELIMITER || parseState != STOP_SECTION || parseState != COMMENT )
+	 // return line;
 
 	parseState = NEWLINE;
+	line++;
 	break;
       case ';' :
 	parseState = COMMENT;
@@ -67,17 +102,17 @@ bool INIParser::parse()
 	break;
       default : 
 
-	if ( parseState == NEWLINE || parseState == NO_SECTION ) {
+	if ( isNewline() || isNoSection() ) {
 	  buffer[i] = ch;
 	  i++;
 	}
 
-	if ( parseState == DELIMITER ) {
+	if ( isDelimiter() ) {
 	  buffer[i] = ch;
 	  i++;
 	}
 
-	if ( parseState == START_SECTION ) {
+	if ( isStartSection() ) {
 	  buffer[i] = ch;
 	  i++;
 	}
@@ -94,11 +129,27 @@ bool INIParser::parse()
 
 std::string & INIParser::getValue(char * section, char * name)
 {
-  return sections[section][name];
+  std::string *value = new std::string("__no_value__");
+
+  Sections::iterator it_s = sections.find(section);
+
+  if ( it_s != sections.end() ) {
+    Parameters::iterator it_p =  it_s->second.find(name);
+    if ( it_p != it_s->second.end() ) {
+      return it_p->second;
+    }
+  }
+
+  return *value;
 }
 
 Parameters & INIParser::getParameters(char * section)
 {
+
+  Sections::iterator it_s = sections.find(section);
+
+  if ( it_s != sections.end() ) {
+
   return sections[section];
 }
 
@@ -116,22 +167,50 @@ bool INIParser::isValue(char * section, char * name)
   return false;
 }
 
-
-/*
-int main () 
+bool INIParser::isNoSection()
 {
-  INIParser ini = INIParser("ovso.ini");
+  if ( parseState == NO_SECTION )
+    return true;
 
-  ini.parse();
+  return false;
+}
 
-  std::cout << "NOSECTION => " << ini.getValue("__NO_SECTION__","version") << std::endl;
-  std::cout << "REPORTING => " << ini.getValue("reporting","uri") << std::endl;
-  std::cout << "GENERAL => " << ini.getValue("general","max_lives") << std::endl;
+bool INIParser::isStartSection()
+{
+  if ( parseState == START_SECTION )
+    return true;
 
-  Parameters::iterator it = ini.getParameters("commands").begin();
+  return false;
+}
 
-  for (; it != ini.getParameters("commands").end(); it++)
-    std::cout << "name : " << it->first << " value = " << it->second << std::endl;
+bool INIParser::isStopSection()
+{
+  if ( parseState == STOP_SECTION )
+    return true;
 
-  return 0;
-} */
+  return false;
+}
+
+bool INIParser::isDelimiter()
+{
+  if ( parseState == DELIMITER )
+    return true;
+
+  return false;
+}
+
+bool INIParser::isComment()
+{
+  if ( parseState == COMMENT )
+    return true;
+
+  return false;
+}
+
+bool INIParser::isNewline()
+{
+  if ( parseState == NEWLINE )
+    return true;
+
+  return false;
+}

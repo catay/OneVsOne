@@ -15,11 +15,18 @@ class INIParser
     INIParser(const char * iniFile);
     ~INIParser() {};
 
-    bool parse();
+    int parse();
     Parameters & getParameters(char * section);
     std::string & getValue(char * section, char * name);
     bool isSection(char * section);
     bool isValue(char * section, char * name);
+
+    bool isNoSection();
+    bool isStartSection();
+    bool isStopSection();
+    bool isDelimiter();
+    bool isComment();
+    bool isNewline();
 
   private:
 
@@ -33,6 +40,7 @@ class INIParser
     }   ParseState;
 
     std::string _iniFile;
+    ParseState parseState;
     Sections sections;
 };
 
