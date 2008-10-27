@@ -50,7 +50,7 @@ int INIParser::parse()
 	break;
       case '=' :
 
-	if ( isStartSection() )
+	if ( isStartSection() || isDelimiter())
 	  return line;
 
 	if ( isNoSection() && i == 0 )
@@ -127,30 +127,17 @@ int INIParser::parse()
   return 0;
 }
 
-std::string & INIParser::getValue(char * section, char * name)
+const std::string & INIParser::getValue(char * section, char * name)
 {
-  std::string *value = new std::string("__no_value__");
-
   Sections::iterator it_s = sections.find(section);
-
-  if ( it_s != sections.end() ) {
-    Parameters::iterator it_p =  it_s->second.find(name);
-    if ( it_p != it_s->second.end() ) {
-      return it_p->second;
-    }
-  }
-
-  return *value;
+  Parameters::iterator it_p =  it_s->second.find(name);
+  return it_p->second;
 }
 
 Parameters & INIParser::getParameters(char * section)
 {
-
   Sections::iterator it_s = sections.find(section);
-
-//  if ( it_s != sections.end() ) {
-
-  return sections[section];
+  return it_s->second;
 }
 
 bool INIParser::isSection(char * section)

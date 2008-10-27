@@ -92,6 +92,7 @@ class OneVsOne : public bz_EventHandler, public bz_CustomSlashCommandHandler
     bool cfgPerm;
     std::string cfgPermName;
     bool compatibility;
+    bool isComm;
 
     // reporting/info handlers
     PlayerInfo playerInfoHandler;
@@ -132,49 +133,92 @@ OneVsOne oneVsOne;
 OneVsOne::OneVsOne()
 {
   // Initialize the default values
-  recording = false;
-  isMotd = false;
-  serverName = "n/a";
-  gameTypes["official"] = "official";
-  maxLives = 10;
-  // in seconds , default 1 hour 
-  motdRefreshInterval = 3600;
-  motdLastRefreshTime = 0;
 
-  logFile = "none";
+  // general section
+
+  maxLives = 10;
   gameStyle = "classic";
+  recording = false;
+  compatibility = true;
+
+  // commands
+  gameTypes["official"] = "official";
+
+  // communication
+  httpUri = "";
+  isMotd = false;
+  motdRefreshInterval = 3600;
+
+  // logging
+  logFile = "none";
+
+  // various initializations
+  serverName = "n/a";
+  // in seconds , default 1 hour 
+  motdLastRefreshTime = 0;
   startTime = 0;
   
   motdHandler.setNoNoKNotify(true);
   cfgPerm =  false;
   cfgPermName = "OVSO_CFG";
 
-  compatibility = true;
+  isComm = false;
 }
 
 bool OneVsOne::readConfig(std::string fileName)
 {
   INIParser config = INIParser(fileName.c_str());
-  config.parse();
+  int status = config.parse();
 
-  maxLives = atoi(config.getValue("general", "max_lives").c_str());
-  gameStyle = config.getValue("general","style");
-
-  if ( config.getValue("general", "compatibility") == "false" )
-    compatibility = false;
-
-  logFile = config.getValue("logging", "logfile");
-
-  httpUri = config.getValue("reporting", "httpuri"); 
-
-  if ( config.getValue("reporting", "motd") == "true" ) {
-    isMotd = true;
-    motdRefreshInterval = atoi(config.getValue("reporting", "motd_refresh_interval").c_str());
+  if (status > 0 ) {
+    bz_debugMessage(DEBUG_LEVEL,"OneVsOne plugin loading FAILED");
+    bz_debugMessagef(DEBUG_LEVEL,"Error parsing config file at line %d", status);
+    return false;
   }
 
+  if (config.isSection("general") ) {
+
+    if ( config.isValue("general","max_lives") ) 
+	maxLives = atoi(config.getValue("general", "max_lives").c_str());
+
+    if ( config.isValue("general","style") )
+      gameStyle = config.getValue("general","style");
+
+    //if ( config.isValue("general","recording")
+
+    if ( config.isValue("general","compatibility") ) {
+	if ( config.getValue("general", "compatibility") == "false" ) {
+	  compatibility = false;
+	}
+    }
+  }
 
   gameTypes.clear();
-  oneVsOne.gameTypes = config.getParameters("commands");
+
+  if (config.isSection("commands") )
+    oneVsOne.gameTypes = config.getParameters("commands");
+
+  if (config.isSection("communication") ) {
+    if ( config.isValue("communication","httpuri") ) {
+      httpUri = config.getValue("reporting", "httpuri");
+      isComm = true;
+
+      if ( config.isValue("communication","enable_motd") ) {
+	if ( config.getValue("reporting", "motd") == "true" ) {
+	  isMotd = true;
+	  if ( config.isValue("communication", "motd_refresh_interval") ) {
+	    motdRefreshInterval = atoi(config.getValue("communication", "motd_refresh_interval").c_str());
+	  }
+	}
+      }
+    }
+  }
+
+  if (config.isSection("logging") ) {
+    if ( config.isValue("logging","logfile") )
+      logFile = config.getValue("logging", "logfile");
+  }
+
 }
 
 bool OneVsOne::isCompat()
@@ -435,19 +479,19 @@ void OneVsOne::showHelp(int playerID, bzApiString action)
     bz_sendTextMessage( BZ_SERVER, playerID,"Usage: /ovso help [<action>]" );
   else if (action == "match") 
     bz_sendTextMessage( BZ_SERVER, playerID,"Usage: /ovso match [<match type>]" );
-  else if (action == "register") 
+  else if (action == "register" && isComm ) 
     bz_sendTextMessage( BZ_SERVER, playerID,"Usage: /ovso register <emailaddress>" );
-  else if (action == "playerinfo")
+  else if (action == "playerinfo" && isComm )
     bz_sendTextMessage( BZ_SERVER, playerID,"Usage: /ovso playerinfo <callsign> [<callsign> ...]" );
-  else if (action == "topscore")
+  else if (action == "topscore" && isComm )
     bz_sendTextMessage( BZ_SERVER, playerID,"Usage: /ovso topscore [<items>]" );
-  else if (action == "topzelo")
+  else if (action == "topzelo" && isComm )
     bz_sendTextMessage( BZ_SERVER, playerID,"Usage: /ovso topzelo [<items>]" );
-  else if (action == "motd" && cfgPerm)
+  else if (action == "motd" && cfgPerm && isComm )
     bz_sendTextMessage( BZ_SERVER, playerID,"Usage: /ovso motd <get>|<set [message]> " );
-  else if (action == "lives" && cfgPerm)
+  else if (action == "lives" && cfgPerm && isComm )
     bz_sendTextMessage( BZ_SERVER, playerID,"Usage: /ovso lives <get>|<set [life count]> " );
-  else if (action == "reload" && cfgPerm)
+  else if (action == "reload" && cfgPerm && isComm )
     bz_sendTextMessage( BZ_SERVER, playerID,"Usage: /ovso reload " );
   else {
     bz_sendTextMessage( BZ_SERVER, playerID,"Usage: /ovso <action> <params>" );
@@ -456,13 +500,19 @@ void OneVsOne::showHelp(int playerID, bzApiString action)
     bz_sendTextMessage( BZ_SERVER, playerID,"" );
     bz_sendTextMessage( BZ_SERVER, playerID," help [<action>] 1vs1 help" );
     bz_sendTextMessage( BZ_SERVER, playerID," match [<match type>] start a match of a certain type" );
-    bz_sendTextMessage( BZ_SERVER, playerID," register <valid emailaddress>  1vs1 league registration" );
-    bz_sendTextMessage( BZ_SERVER, playerID," playerinfo <callsign> [<callsign> ...] show 1vs1 info of a player" );
-    bz_sendTextMessage( BZ_SERVER, playerID," topscore [<items>]  show the monthly player score ranking" );
-    bz_sendTextMessage( BZ_SERVER, playerID," topzelo [<items>]  show the player zelo ranking" );
+
+    if ( isComm ) {
+      bz_sendTextMessage( BZ_SERVER, playerID," register <valid emailaddress>  1vs1 league registration" );
+      bz_sendTextMessage( BZ_SERVER, playerID," playerinfo <callsign> [<callsign> ...] show 1vs1 info of a player" );
+      bz_sendTextMessage( BZ_SERVER, playerID," topscore [<items>]  show the monthly player score ranking" );
+
+      if ( cfgPerm ) 
+	bz_sendTextMessage( BZ_SERVER, playerID," motd <get>|<set [message]>  get/set global message of the day" );
+
+      bz_sendTextMessage( BZ_SERVER, playerID," topzelo [<items>]  show the player zelo ranking" );
+    }
 
     if ( cfgPerm ) {
-      bz_sendTextMessage( BZ_SERVER, playerID," motd <get>|<set [message]>  get/set global message of the day" );
       bz_sendTextMessage( BZ_SERVER, playerID," lives <get>|<set [life count]>  get/set maximum life count" );
       bz_sendTextMessage( BZ_SERVER, playerID," reload reloads the configuration file (not available)" );
     }
@@ -656,10 +706,12 @@ void OneVsOne::logRecordMatch(std::string mType, int winner, int loser)
 
   bz_sendTextMessagef (BZ_SERVER, BZ_ALLUSERS,"The match has been logged [match type = %s]", matchType.c_str());
 
-  // do reporting over http
+  // do reporting over http if enabled
 
-  reportHandler.setPlayerId(BZ_ALLUSERS);
-  bz_addURLJob(httpUri.c_str(), &reportHandler, reportData.c_str());
+  if ( isComm ) {
+    reportHandler.setPlayerId(BZ_ALLUSERS);
+    bz_addURLJob(httpUri.c_str(), &reportHandler, reportData.c_str());
+  }
 
   bz_debugMessagef ( 2,"%s reportHandler :: %s", DEBUG_TAG, reportData.c_str());	
 }
@@ -761,12 +813,12 @@ bool OneVsOne::handle ( int playerID, bzApiString cmd, bzApiString msg, bzAPIStr
 	return true;
       } 
 
-      if ( action == "register") {
+      if ( action == "register" && isComm ) {
 	registerPlayer(playerID, cmdParams);
        	return true;
       }
 
-      if ( action == "playerinfo" ) {
+      if ( action == "playerinfo" && isComm ) {
 	bzAPIStringList *p = bz_newStringList();
        	p->tokenize(msg.c_str(), " ", 0, true);
 	getPlayerInfo(playerID, p);
@@ -774,12 +826,12 @@ bool OneVsOne::handle ( int playerID, bzApiString cmd, bzApiString msg, bzAPIStr
 	return true;
       } 
 
-      if ( action == "topscore") {
+      if ( action == "topscore" && isComm ) {
 	getTopScore(playerID, cmdParams);
 	return true;
       }
 
-      if ( action == "topzelo") {
+      if ( action == "topzelo" && isComm ) {
 	getTopZelo(playerID, cmdParams);
 	return true;
       } 
@@ -789,7 +841,7 @@ bool OneVsOne::handle ( int playerID, bzApiString cmd, bzApiString msg, bzAPIStr
 	return true;
       } 
 
-      if ( action == "motd" && cfgPerm ) {
+      if ( action == "motd" && cfgPerm && isComm  ) {
 	bzAPIStringList *m = bz_newStringList();
        	m->tokenize(msg.c_str(), " ", 3, false);
 	handleMotd(playerID, m);
