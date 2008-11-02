@@ -127,16 +127,19 @@ int INIParser::parse()
   return 0;
 }
 
-const std::string & INIParser::getValue(char * section, char * name)
+const std::string INIParser::getValue(char * section, char * name)
 {
-  Sections::iterator it_s = sections.find(section);
-  Parameters::iterator it_p =  it_s->second.find(name);
-  return it_p->second;
+  //Sections::iterator it_s = sections.find(section);
+  //it_s = sections.find(section);
+  //Parameters::iterator it_p =  it_s->second.find(name);
+  //return it_p->second;
+  return sections[section][name];
 }
 
 Parameters & INIParser::getParameters(char * section)
 {
-  Sections::iterator it_s = sections.find(section);
+  //Sections::iterator it_s = sections.find(section);
+  it_s = sections.find(section);
   return it_s->second;
 }
 

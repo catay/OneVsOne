@@ -17,7 +17,7 @@ class INIParser
 
     int parse();
     Parameters & getParameters(char * section);
-    const std::string & getValue(char * section, char * name);
+    const std::string getValue(char * section, char * name);
     bool isSection(char * section);
     bool isValue(char * section, char * name);
 
@@ -42,6 +42,7 @@ class INIParser
     std::string _iniFile;
     ParseState parseState;
     Sections sections;
+    Sections::iterator it_s;
 };
 
 #endif

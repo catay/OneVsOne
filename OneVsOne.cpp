@@ -89,6 +89,8 @@ class OneVsOne : public bz_EventHandler, public bz_CustomSlashCommandHandler
     std::string httpUri;
     double motdRefreshInterval;
     double motdLastRefreshTime; 
+    double welcomeMessageRefreshInterval;
+    double welcomeMessageLastRefreshTime; 
     bool cfgPerm;
     std::string cfgPermName;
     bool compatibility;
@@ -101,7 +103,7 @@ class OneVsOne : public bz_EventHandler, public bz_CustomSlashCommandHandler
     BaseUrlHandler registerHandler;
     BaseUrlHandler reportHandler;
     BaseUrlHandler motdHandler;
-
+    BaseUrlHandler welcomeMessageHandler;
 
     // issers
     bool isMatch();
@@ -125,6 +127,7 @@ class OneVsOne : public bz_EventHandler, public bz_CustomSlashCommandHandler
     int getWinner(int playerId);
     void saveScores(char * scores);
     void showMotdBanner(int playerId, bool force=false);
+    void showWelcomeMessage(int playerId, bool force=false);
 
 };
 
@@ -148,6 +151,7 @@ OneVsOne::OneVsOne()
   httpUri = "";
   isMotd = false;
   motdRefreshInterval = 3600;
+  welcomeMessageRefreshInterval = 3600;
 
   // logging
   logFile = "none";
@@ -156,6 +160,7 @@ OneVsOne::OneVsOne()
   serverName = "n/a";
   // in seconds , default 1 hour 
   motdLastRefreshTime = 0;
+  welcomeMessageLastRefreshTime = 0;
   startTime = 0;
   
   motdHandler.setNoNoKNotify(true);
@@ -200,11 +205,11 @@ bool OneVsOne::readConfig(std::string fileName)
 
   if (config.isSection("communication") ) {
     if ( config.isValue("communication","httpuri") ) {
-      httpUri = config.getValue("reporting", "httpuri");
+      httpUri = config.getValue("communication", "httpuri");
       isComm = true;
 
       if ( config.isValue("communication","enable_motd") ) {
-	if ( config.getValue("reporting", "motd") == "true" ) {
+	if ( config.getValue("communication", "enable_motd") == "true" ) {
 	  isMotd = true;
 	  if ( config.isValue("communication", "motd_refresh_interval") ) {
 	    motdRefreshInterval = atoi(config.getValue("communication", "motd_refresh_interval").c_str());
@@ -505,11 +510,11 @@ void OneVsOne::showHelp(int playerID, bzApiString action)
       bz_sendTextMessage( BZ_SERVER, playerID," register <valid emailaddress>  1vs1 league registration" );
       bz_sendTextMessage( BZ_SERVER, playerID," playerinfo <callsign> [<callsign> ...] show 1vs1 info of a player" );
       bz_sendTextMessage( BZ_SERVER, playerID," topscore [<items>]  show the monthly player score ranking" );
+      bz_sendTextMessage( BZ_SERVER, playerID," topzelo [<items>]  show the player zelo ranking" );
 
       if ( cfgPerm ) 
 	bz_sendTextMessage( BZ_SERVER, playerID," motd <get>|<set [message]>  get/set global message of the day" );
 
-      bz_sendTextMessage( BZ_SERVER, playerID," topzelo [<items>]  show the player zelo ranking" );
     }
 
     if ( cfgPerm ) {
@@ -643,6 +648,18 @@ void OneVsOne::showMotdBanner(int playerId, bool force)
   else motdHandler.showData(playerId);
 }
 
+void OneVsOne::showWelcomeMessage(int playerId, bool force)
+{
+  // only get the motd from the remote server when the interval as exceeded
+  // else get the cached motd
+  if ( ((time(NULL) - welcomeMessageLastRefreshTime) > welcomeMessageRefreshInterval) || force ) {
+    welcomeMessageHandler.setPlayerId(playerId);
+    bz_addURLJob(httpUri.c_str(), &welcomeMessageHandler, "action=welcome_msg");
+    welcomeMessageLastRefreshTime = time(NULL);
+  }
+  else motdHandler.showData(playerId);
+}
+
 void OneVsOne::logRecordMatch(std::string mType, int winner, int loser)
 {
   time_t t = time(NULL);
@@ -721,6 +738,8 @@ void OneVsOne::process ( bz_EventData *eventData )
 
   if (eventData->eventType == bz_ePlayerJoinEvent) {
     bz_PlayerJoinPartEventData *joinData = (bz_PlayerJoinPartEventData*)eventData;
+
+    showWelcomeMessage(joinData->playerID);
 
     if ( isMotd ) {
       showMotdBanner(joinData->playerID);

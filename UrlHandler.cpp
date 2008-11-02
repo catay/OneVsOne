@@ -41,7 +41,8 @@ void BaseUrlHandler::showDataOK(int playerId)
 
 void BaseUrlHandler::showDataNOK(int playerId)
 {
-  bz_sendTextMessagef ( BZ_SERVER, playerId,"%s", dataList->get(1).c_str());
+  for ( unsigned int i = 1; i < dataList->size(); i++)
+    bz_sendTextMessagef ( BZ_SERVER, playerId,"%s", dataList->get(1).c_str());
 }
 
 void BaseUrlHandler::showData(int playerId) 
