@@ -126,6 +126,10 @@ Mr_Molez, Romfis, Thonolan.
 Changelog:
 ==========
 
+ * OneVsOne 1.0.3 (9 November 2008)
+
+   - To much to name :P
+
  * OneVsOne 1.0.2 (3 December 2007)
 
    - Used a tab character as a seperator for the match reporting

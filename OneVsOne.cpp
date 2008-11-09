@@ -28,14 +28,6 @@ typedef struct {
 	std::string matchType;
 } OneVsOnePlayer;
 
-
-// report url
-
-// std::string httpUri = "http://catay.be/scripts/action.php";
-
-
-//std::string url = "http://1vs1.bzleague.com/scripts/auto_match_report.php";
-
 /// HELPER STUFF ///
 
 template <class T>
@@ -55,8 +47,6 @@ bool replace(std::string& s,const char * orig,const char * rep )
   }
   return retval;
 }
-
-// function returns true when a valid status is returned.
 
 
 class OneVsOne : public bz_EventHandler, public bz_CustomSlashCommandHandler
@@ -80,6 +70,7 @@ class OneVsOne : public bz_EventHandler, public bz_CustomSlashCommandHandler
     std::map<int, OneVsOnePlayer> Players;
     bool recording;
     bool isMotd;
+    bool isWelcome;
     std::string matchType;
     std::string serverName;
     std::string gameStyle;
@@ -87,9 +78,8 @@ class OneVsOne : public bz_EventHandler, public bz_CustomSlashCommandHandler
     std::string logFile;
     double startTime;
     std::string httpUri;
-    double motdRefreshInterval;
     double motdLastRefreshTime; 
-    double welcomeMessageRefreshInterval;
+    double refreshInterval;
     double welcomeMessageLastRefreshTime; 
     bool cfgPerm;
     std::string cfgPermName;
@@ -150,15 +140,15 @@ OneVsOne::OneVsOne()
   // communication
   httpUri = "";
   isMotd = false;
-  motdRefreshInterval = 3600;
-  welcomeMessageRefreshInterval = 3600;
+  isWelcome = false;
+  // in seconds , default 1 hour 
+  refreshInterval = 3600;
 
   // logging
   logFile = "none";
 
   // various initializations
   serverName = "n/a";
-  // in seconds , default 1 hour 
   motdLastRefreshTime = 0;
   welcomeMessageLastRefreshTime = 0;
   startTime = 0;
@@ -169,6 +159,7 @@ OneVsOne::OneVsOne()
 
   isComm = false;
 }
+
 
 bool OneVsOne::readConfig(std::string fileName)
 {
@@ -189,8 +180,6 @@ bool OneVsOne::readConfig(std::string fileName)
     if ( config.isValue("general","style") )
       gameStyle = config.getValue("general","style");
 
-    //if ( config.isValue("general","recording")
-
     if ( config.isValue("general","compatibility") ) {
 	if ( config.getValue("general", "compatibility") == "false" ) {
 	  compatibility = false;
@@ -208,20 +197,18 @@ bool OneVsOne::readConfig(std::string fileName)
       httpUri = config.getValue("communication", "httpuri");
       isComm = true;
 
+      if ( config.isValue("communication", "refresh_interval") ) {
+	refreshInterval = atoi(config.getValue("communication", "refresh_interval").c_str());
+      }
+
       if ( config.isValue("communication","enable_motd") ) {
 	if ( config.getValue("communication", "enable_motd") == "true" ) {
 	  isMotd = true;
-	  if ( config.isValue("communication", "motd_refresh_interval") ) {
-	    motdRefreshInterval = atoi(config.getValue("communication", "motd_refresh_interval").c_str());
-	  }
 	}
       }
 
       if ( config.getValue("communication", "enable_welcome") == "true" ) {
-	//isMotd = true;
-	if ( config.isValue("communication", "welcome_refresh_interval") ) {
-	  welcomeMessageRefreshInterval = atoi(config.getValue("communication", "welcome_refresh_interval").c_str());
-	}
+	isWelcome = true;
       }
     }
   }
@@ -444,8 +431,6 @@ void OneVsOne::handleMotd(int playerID, bzAPIStringList* params)
 
     bz_freePlayerRecord ( playerRecord );
 
-    bz_debugMessagef ( 2,"DEBUG :: msg => %s", msg.c_str() );
-
     motdHandler.setPlayerId(playerID);
     bz_addURLJob(httpUri.c_str(), &motdHandler, msg.c_str());
     motdLastRefreshTime = time(NULL);
@@ -645,9 +630,9 @@ void OneVsOne::saveScores(char * scores)
 
 void OneVsOne::showMotdBanner(int playerId, bool force)
 {
-  // only get the motd from the remote server when the interval as exceeded
+  // only get the motd from the remote server when the interval has exceeded
   // else get the cached motd
-  if ( ((time(NULL) - motdLastRefreshTime) > motdRefreshInterval) || force ) {
+  if ( ((time(NULL) - motdLastRefreshTime) > refreshInterval) || force ) {
     motdHandler.setPlayerId(playerId);
     bz_addURLJob(httpUri.c_str(), &motdHandler, "action=motd");
     motdLastRefreshTime = time(NULL);
@@ -657,9 +642,9 @@ void OneVsOne::showMotdBanner(int playerId, bool force)
 
 void OneVsOne::showWelcomeMessage(int playerId, bool force)
 {
-  // only get the motd from the remote server when the interval as exceeded
-  // else get the cached motd
-  if ( ((time(NULL) - welcomeMessageLastRefreshTime) > welcomeMessageRefreshInterval) || force ) {
+  // only get the welcome message from the remote server when the interval has exceeded
+  // else get the cached welcome message
+  if ( ((time(NULL) - welcomeMessageLastRefreshTime) > refreshInterval) || force ) {
     welcomeMessageHandler.setPlayerId(playerId);
     bz_addURLJob(httpUri.c_str(), &welcomeMessageHandler, "action=welcome_msg");
     welcomeMessageLastRefreshTime = time(NULL);
@@ -735,7 +720,6 @@ void OneVsOne::logRecordMatch(std::string mType, int winner, int loser)
     bz_addURLJob(httpUri.c_str(), &reportHandler, reportData.c_str());
   }
 
-  bz_debugMessagef ( 2,"%s reportHandler :: %s", DEBUG_TAG, reportData.c_str());	
 }
 
 void OneVsOne::process ( bz_EventData *eventData )
@@ -744,11 +728,11 @@ void OneVsOne::process ( bz_EventData *eventData )
   if (eventData->eventType == bz_ePlayerJoinEvent) {
     bz_PlayerJoinPartEventData *joinData = (bz_PlayerJoinPartEventData*)eventData;
 
-    showWelcomeMessage(joinData->playerID);
+    if ( isWelcome )
+      showWelcomeMessage(joinData->playerID);
 
-    if ( isMotd ) {
+    if ( isMotd )
       showMotdBanner(joinData->playerID);
-    }
 			
     // revoking superkill perms makes sure admin/cops don't abuse it
     // when a match is in progress ;) 
@@ -892,7 +876,9 @@ BZF_PLUGIN_CALL int bz_Load ( const char* commandLine )
   std::string cmdLine = commandLine;
 
   if (cmdLine.size())
-    oneVsOne.readConfig(cmdLine);
+    if ( ! oneVsOne.readConfig(cmdLine) )
+      bz_debugMessage( DEBUG_LEVEL, "OneVsOne reading config file failed .. falling back to defaults" );
+
  
   bz_registerCustomSlashCommand ("ovso", &oneVsOne);
 
