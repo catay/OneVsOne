@@ -6,4 +6,4 @@ OneVsOne.so : OneVsOne.o UrlHandler.o INIParser.o
 remote :
 	make clean && scp * kaiya:work/bzflag/plugins/OneVsOne && ssh kaiya "cd work/bzflag/plugins/OneVsOne &&  make clean && make"
 clean :
-		-rm *.so *.o
+		-rm -f *.so *.o
