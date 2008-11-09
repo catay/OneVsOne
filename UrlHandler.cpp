@@ -1,6 +1,24 @@
 
 #include "UrlHandler.h"
 
+
+
+
+bool replace_v2(std::string& s,const char * orig,const char * rep )
+{
+  bool retval=false;
+  while ( s.find(orig) != std::string::npos ) {
+    s.replace(s.find(orig),std::string(orig).size(),rep);
+    retval=true;
+  }
+  return retval;
+}
+
+
+
+
+
+
 void BaseUrlHandler::done ( const char* /*URL*/, void * data, unsigned int size, bool complete )
 {
   int _playerId = _playerIds[0];
@@ -11,7 +29,11 @@ void BaseUrlHandler::done ( const char* /*URL*/, void * data, unsigned int size,
     _data.append((char*)data, size);
 
     if (is_valid_status(_data))	{
-      dataList->tokenize(_data.c_str(), "\r\n");
+      replace_v2(_data,"\r\n","\n");
+      replace_v2(_data,"\r","\n");
+      replace_v2(_data,"\n\n","\n \n");
+      //dataList->tokenize(_data.c_str(), "\r\n");
+      dataList->tokenize(_data.c_str(), "\n");
       showData(_playerId);
 
     }
@@ -131,4 +153,37 @@ void TopZelo::showDataOK(int playerId)
   }
 
   bz_sendTextMessage ( BZ_SERVER, playerId,"-------------------------------------------");
+}
+
+void InfoMessage::done ( const char* /*URL*/, void * data, unsigned int size, bool complete )
+{
+  int _playerId = _playerIds[0];
+  _playerIds.erase(_playerIds.begin());
+
+  if ( size > 1 && size < _max_data_size ) {
+    std::string _data; 
+    _data.append((char*)data, size);
+
+    if (is_valid_status(_data))	{
+      //bz_debugMessagef(2,"debug::data::before::replace::%s",_data.c_str());
+      //replace_v2(_data,"\r\n\r\n","\r\n@\r\n ");
+      
+      replace_v2(_data,"\r\n","\n");
+      replace_v2(_data,"\r","\n");
+      replace_v2(_data,"\n\n","\n \n");
+      //bz_debugMessagef(2,"debug::data::after::replace::%s",_data.c_str());
+      dataList->tokenize(_data.c_str(), "\n");
+      //bz_debugMessagef(2,"debug::datalist::count::%d",dataList->size());
+      showData(_playerId);
+
+    }
+    else {
+      bz_sendTextMessage (BZ_SERVER, _playerId,"No valid data was received !");
+      bz_sendTextMessage (BZ_SERVER, _playerId,"This points to a bug or misuse. Please contact the server admin.");
+    }
+  }
+  else {
+    bz_sendTextMessagef (BZ_SERVER, _playerId,"The received data size (%d) exceede the limit (%d)", size, _max_data_size);
+    bz_sendTextMessage (BZ_SERVER, _playerId,"This points to a bug or misuse. Please contact the server admin.");
+  }
 }

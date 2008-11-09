@@ -97,9 +97,9 @@ class OneVsOne : public bz_EventHandler, public bz_CustomSlashCommandHandler
     bool isComm;
 
     // reporting/info handlers
-    PlayerInfo playerInfoHandler;
-    TopScore topScoreHandler;
-    TopZelo topZeloHandler;
+    BaseUrlHandler playerInfoHandler;
+    BaseUrlHandler topScoreHandler;
+    BaseUrlHandler topZeloHandler;
     BaseUrlHandler registerHandler;
     BaseUrlHandler reportHandler;
     BaseUrlHandler motdHandler;
@@ -214,6 +214,13 @@ bool OneVsOne::readConfig(std::string fileName)
 	  if ( config.isValue("communication", "motd_refresh_interval") ) {
 	    motdRefreshInterval = atoi(config.getValue("communication", "motd_refresh_interval").c_str());
 	  }
+	}
+      }
+
+      if ( config.getValue("communication", "enable_welcome") == "true" ) {
+	//isMotd = true;
+	if ( config.isValue("communication", "welcome_refresh_interval") ) {
+	  welcomeMessageRefreshInterval = atoi(config.getValue("communication", "welcome_refresh_interval").c_str());
 	}
       }
     }
@@ -380,14 +387,14 @@ void OneVsOne::setMatch(int playerID, bzAPIStringList* params)
 	matchType.clear();
 	Players[playerID].matchType = (*matchTypeIt).first;
       } else {
-	bz_sendTextMessagef ( BZ_SERVER, playerID,"There is already a match in progress ... [ %s ]", (*matchTypeIt).first.c_str());
+	bz_sendTextMessagef ( BZ_SERVER, playerID,"There is already a match in progress ... [%s]", (*matchTypeIt).first.c_str());
 	return;
       }
 
-      bz_sendTextMessagef ( BZ_SERVER, BZ_ALLUSERS,"%s declared to play a match [ %s ]", playerRecord->callsign.c_str(), (*matchTypeIt).first.c_str());
+      bz_sendTextMessagef ( BZ_SERVER, BZ_ALLUSERS,"%s declared to play a match [%s]", playerRecord->callsign.c_str(), (*matchTypeIt).first.c_str());
 
       if ( isMatch () ) {
-	bz_sendTextMessagef ( BZ_SERVER, BZ_ALLUSERS,"All current players agreed to play a match [ %s ]", (*matchTypeIt).first.c_str());
+	bz_sendTextMessagef ( BZ_SERVER, BZ_ALLUSERS,"All current players agreed to play a match [%s]", (*matchTypeIt).first.c_str());
 	matchType = (*matchTypeIt).first.c_str();
 	startTime = bz_getCurrentTime();
       
@@ -657,7 +664,7 @@ void OneVsOne::showWelcomeMessage(int playerId, bool force)
     bz_addURLJob(httpUri.c_str(), &welcomeMessageHandler, "action=welcome_msg");
     welcomeMessageLastRefreshTime = time(NULL);
   }
-  else motdHandler.showData(playerId);
+  else welcomeMessageHandler.showData(playerId);
 }
 
 void OneVsOne::logRecordMatch(std::string mType, int winner, int loser)
@@ -720,8 +727,6 @@ void OneVsOne::logRecordMatch(std::string mType, int winner, int loser)
     std::string(lbzid.c_str() + std::string("&duration=") + to_string(duration));
 
   saveScores( scores );
-
-  bz_sendTextMessagef (BZ_SERVER, BZ_ALLUSERS,"The match has been logged [match type = %s]", matchType.c_str());
 
   // do reporting over http if enabled
 

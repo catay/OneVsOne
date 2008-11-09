@@ -36,11 +36,11 @@ class BaseUrlHandler : public bz_URLHandler
     bool setNoNoKNotify(bool notify);
 
   private:
-    std::vector<int> _playerIds;
-    unsigned int _max_data_size;
     bool noNOKNotify;
 
   protected:
+    unsigned int _max_data_size;
+    std::vector<int> _playerIds;
     bzAPIStringList* dataList;
 };
 
@@ -75,6 +75,12 @@ class TopZelo : public BaseUrlHandler
 {
   public:
     virtual void showDataOK(int playerId);
+};
+
+class InfoMessage : public BaseUrlHandler
+{
+  public:
+    virtual void done ( const char* /*URL*/, void * data, unsigned int size, bool complete );
 };
 
 
