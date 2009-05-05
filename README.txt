@@ -1,4 +1,4 @@
-OneVsOne plugin version 1.0.1  (October xx, 2006)
+OneVsOne plugin version 1.0.3  (December 3th, 2007)
 ------------------------------------------------
 
  The OneVsOne plugin makes it possible to play
@@ -35,7 +35,8 @@ The OneVsOne plugin provides the following in-game commands.
  /setlives [<max lives>]	:	
 
  The setlives command makes it possible to change live the life 
- count on a server. This requires the SETLIVES permission.
+ count on a server. Usefull for testing purposes.
+ This requires the SETLIVES permission.
 
  Players are also able to use the /superkill command. They
  can't use it when an official/contest match is in progress
@@ -102,7 +103,8 @@ Todo
    setup.
 
  * Seems not the compile on the windows platform because of 
-   strcmp/strcasecmp functions.
+   strcmp/strcasecmp functions. I don't have access to a 
+   windows build environment , so can't test it. :(
 
 Credits:
 ========
@@ -116,19 +118,27 @@ Also thanks to all the people who helped me test it :
 (Alphabetic order)
 
 Birdie, Chestal, Grumpf, Karlik25, Kierra, Koziol, MasterYoda, 
-Mr_Molez, Thonolan.
+Mr_Molez, Romfis, Thonolan.
 
 Changelog:
 ==========
 
- * OneVsOne 1.0.1 (October 2006)
+ * OneVsOne 1.0.2 (3 December 2007)
+
+   - Used a tab character as a seperator for the match reporting
+     as requested by Strayer & Zongo.
+
+   - First implementation of real time match reporting through
+     http.
+
+ * OneVsOne 1.0.1 (2 November 2006)
 
    - Kierra pointed me to the fact that the plural from life is 
      lives and not lifes. Changed lifes to lives. :P
 
    - Fixed a small bug that occured when at the end of a game
      both players shoot eachother before the auto explode happens.
-	 Because of that a ghost playerid was added to the map. Had
+	 Because of that, a ghost playerid was added to the map. Had
 	 no impact on scores or something else whatsoever.
 
    - Added some ascii art banners that clearly state when someone

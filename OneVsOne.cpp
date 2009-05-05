@@ -10,7 +10,7 @@
 
 BZ_GET_PLUGIN_VERSION
 
-#define ONEVSONE "1.0.1"
+#define ONEVSONE "1.0.2"
 
 #define MAX_PLAYERS 2
 
@@ -19,7 +19,7 @@ BZ_GET_PLUGIN_VERSION
 
 typedef struct {
 	int losses;
-	char callsign[22];
+	std::string callsign;
 	bool official;
 	bool contest;
 } OneVsOnePlayer;
@@ -27,6 +27,11 @@ typedef struct {
 std::map<int, OneVsOnePlayer> Players;
 
 bool recording=false;
+
+// report url
+
+//std::string url = "http://catay.be/bla.php";
+std::string url = "http://1vs1.bzleague.com/scripts/auto_match_report.php";
 
 // default lives 
 int LIVES=10;
@@ -43,6 +48,7 @@ class OneVsOne : public bz_EventHandler, public bz_CustomSlashCommandHandler
 	private:
 };
 
+
 OneVsOne oneVsOne;
 
 
@@ -52,8 +58,6 @@ void printScore ( void )
 
 	std::map<int,OneVsOnePlayer>::iterator it = Players.begin();
 
-	//std::string timeMsg = "times";
-	//std::string lifeMsg = "lives";
 	std::string timeMsg;
 	std::string lifeMsg;
 	
@@ -71,10 +75,10 @@ void printScore ( void )
 		else lifeMsg = "lives";
 
 		bz_debugMessagef ( DEBUG_LEVEL, "%s key %d => %s got hit %d %s, %d %s left", 
-						DEBUG_TAG, (*it).first, (*it).second.callsign, hits, timeMsg.c_str(), lives, lifeMsg.c_str());
+						DEBUG_TAG, (*it).first, (*it).second.callsign.c_str(), hits, timeMsg.c_str(), lives, lifeMsg.c_str());
 
 		bz_sendTextMessagef ( BZ_SERVER, BZ_ALLUSERS,"%s got hit %d %s, %d %s left",
-						(*it).second.callsign, hits, timeMsg.c_str(), lives, lifeMsg.c_str());
+						(*it).second.callsign.c_str(), hits, timeMsg.c_str(), lives, lifeMsg.c_str());
 	}
 
 	bz_debugMessagef ( DEBUG_LEVEL,"%s END printScore",DEBUG_TAG);	
@@ -105,16 +109,16 @@ void printBanner ( int winner, int loser )
 
 }
 
-void addPlayer ( int playerId, const char *callsign ) 
+void addPlayer ( int playerId, const std::string callsign ) 
 {
-	bz_debugMessagef ( DEBUG_LEVEL,"%s START addPlayer :: %d , %s", DEBUG_TAG, playerId, callsign );	
+	bz_debugMessagef ( DEBUG_LEVEL,"%s START addPlayer :: %d , %s", DEBUG_TAG, playerId, callsign.c_str());	
 
-	strncpy (Players[playerId].callsign, callsign, 20);
+	Players[playerId].callsign = callsign;
 	Players[playerId].losses=0;
 	Players[playerId].official=false;
 	Players[playerId].contest=false;
 
-	bz_debugMessagef ( DEBUG_LEVEL,"%s END addPlayer :: %d , %s", DEBUG_TAG, playerId, callsign );	
+	bz_debugMessagef ( DEBUG_LEVEL,"%s END addPlayer :: %d , %s", DEBUG_TAG, playerId, callsign.c_str());	
 }
 
 void delPlayer(int playerId) 
@@ -244,6 +248,15 @@ void saveScores(char * scores)
 	bz_debugMessagef ( DEBUG_LEVEL,"%s END saveScores :: %s", DEBUG_TAG, scores );	
 }
 
+
+template <class T>
+std::string to_string (const T& t)
+{
+	std::stringstream ss;
+	ss << t;
+	return ss.str();
+}
+
 void logRecordMatch(const char * label, int winner, int loser)
 {
 	
@@ -251,25 +264,57 @@ void logRecordMatch(const char * label, int winner, int loser)
 	tm * now = gmtime(&t);
 			
 	char scores[100];
+	char scores_enc[200];
+	char match_date[20];
 
 	// save recording
 	if ( recording ) {		
 		char filename[512];
 		snprintf( filename,512,"%s[%d]_%s[%d]_%02d%02d%02d_%02d%02d%02d.bzr",
-		Players[winner].callsign,Players[loser].losses,Players[loser].callsign,Players[winner].losses,
+		Players[winner].callsign.c_str(),Players[loser].losses,Players[loser].callsign.c_str(),Players[winner].losses,
 		now->tm_year+1900,now->tm_mon+1,now->tm_mday,now->tm_hour,now->tm_min,now->tm_sec);
 		bz_saveRecBuf( filename );
 		bz_stopRecBuf();
 		bz_sendTextMessagef ( BZ_SERVER, BZ_ALLUSERS,"Match has been recorded as %s ", filename );
 	} 
-				
-	//scores 
-	sprintf( scores,"%s %02d-%02d-%02d %02d:%02d:%02d %s-%s %d-%d\n",
-						label,now->tm_year+1900,now->tm_mon+1,now->tm_mday,
-						now->tm_hour,now->tm_min,now->tm_sec,Players[winner].callsign,
-						Players[loser].callsign,Players[loser].losses,Players[winner].losses );
+
+	sprintf(match_date, "%02d-%02d-%02d %02d:%02d:%02d",
+			now->tm_year+1900,
+			now->tm_mon+1,
+			now->tm_mday,
+			now->tm_hour,
+			now->tm_min,
+			now->tm_sec);
+
+	//format scores 
+	sprintf( scores,"%s\t%s\t%s\t-\t%s\t%d\t-\t%d\n",
+						label,match_date,Players[winner].callsign.c_str(),
+						Players[loser].callsign.c_str(),Players[loser].losses,Players[winner].losses );
+
+
+	// because of a bug in sprintf or bz_urlEncode which I can't track
+	// down I have to use this clumsy way
+
+	std::string v1 = bz_urlEncode(label);
+	std::string v2 = bz_urlEncode(match_date);
+	std::string v3 = bz_urlEncode(Players[winner].callsign.c_str());
+	std::string v4 = bz_urlEncode(Players[loser].callsign.c_str());
+
+	//format scores for http
+	sprintf( scores_enc,"type=%s&date=%s&winner=%s&loser=%s&winner_score=%d&loser_score=%d",
+			v1.c_str(),
+			v2.c_str(),
+			v3.c_str(),
+			v4.c_str(),
+			Players[loser].losses,
+			Players[winner].losses);
 
 	saveScores( scores );
+
+	bz_debugMessagef ( DEBUG_LEVEL,"%s VAR :: scores_enc = %s", DEBUG_TAG, scores_enc);	
+
+	// do reporting over http
+	bz_addURLJob(url.c_str(), NULL, scores_enc);
 
 	if ( strcasecmp ( label,"official" ) == 0 ) 
 		bz_sendTextMessagef (BZ_SERVER, BZ_ALLUSERS,"The game has been logged as an official match");
@@ -277,6 +322,7 @@ void logRecordMatch(const char * label, int winner, int loser)
 	if ( strcasecmp ( label,"contest" ) == 0 ) 
 		bz_sendTextMessagef (BZ_SERVER, BZ_ALLUSERS,"The game has been logged as a contest match");
 }
+
 
 void OneVsOne::process ( bz_EventData *eventData )
 {
@@ -342,7 +388,7 @@ void OneVsOne::process ( bz_EventData *eventData )
 				int loser=dieData->playerID;
 				int winner=getWinner(dieData->playerID);
 
-				bz_gameOver (winner, -1);
+				bz_gameOver (winner, eNoTeam);
 
 				printBanner(winner, loser);
 
