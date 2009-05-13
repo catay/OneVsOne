@@ -1,134 +1,289 @@
-OneVsOne plugin version 1.0.3  (December 3th, 2007)
+OneVsOne plug-in version 1.0.3  (May 13th, 2009)
 ------------------------------------------------
 
- The OneVsOne plugin makes it possible to play
- one versus one matches. This plugin is heavily
- based on the original 1vs1 patch from Pimpinella. 
- It also behaves almost the same.
+Introduction
+============
 
-Plugin command Line:
-====================
+ The OneVsOne plug-in is a bzfs plug-in specially created for one of the
+ finest BZFlag leagues:
 
- -loadplugin PLUGINNAME[,<lives>,<filetologscores>]
+ Zongo's 1vs1 BZFlag league: http://1vs1.bzleague.com
 
- parm 1 => the amount of lives each player has
- parm 2 => the filename where the scores will be logged
+ The plug-in enhances player vs player gameplay in BZFlag, allows in-game 
+ communication with the league site and provides real-time match reporting.
 
- If only parm 1 (lives) is provided , the scores will
- will be logged at debug level 2.
+ The plug-in was initially heavily based on a bzfs 1vs1 patch from BZFlag 
+ developer Pimpinella. During the years a lot of extra features were added 
+ to make the league/game more attractive.
 
- If no parameters are provided, 'lives' will default on 10
- and the scores will be logged at debug level 2.
+ The plug-in does NOT contain any 1vs1 league site specific code which 
+ interacts with the plug-in. This code is developed by another developer
+ called by strayer.
 
- Example:   -loadplugin <path>/OneVsOne,5,/tmp/1vs1.log
+ To use the full feature set of the plug-in the league code is mandatory.
+ It is ofcourse always possible to write this from scratch.
 
-In-game commands:
-=================
+License
+=======
 
-The OneVsOne plugin provides the following in-game commands.
+The plug-in is released under the following license:
 
- /official		: 	declares an official match (requires global
-					login)
- /contest		: 	declares a contest match (requires global
- 					login)
+GNU LESSER GENERAL PUBLIC LICENSE
+Version 2.1, February 1999 
 
- /setlives [<max lives>]	:	
+Requirements
+============
 
- The setlives command makes it possible to change live the life 
- count on a server. Usefull for testing purposes.
- This requires the SETLIVES permission.
+No extra libraries are necessary to get it compiled, it all uses standard stuff.
 
- Players are also able to use the /superkill command. They
- can't use it when an official/contest match is in progress
- or when they declared themselfs already such a match.
+The plug-in is compatible with the latest stable BZFLag release (2.0.12).
 
- The difference between /official and /contest is the way 
- the scores get logged. 
+Plug-in command Line
+=====================
 
-Logging & recording:
-===================
+The plug-in takes a ini based configuration file as a parameter.  In
+case no INI file is provided it falls back to basic mode and all the 
+1vs1 league integration code is deactivated.
 
-The scores get logged in the following format to a file or
-to debug level 2. Only official or contest matches get
-logged and recorded.
+ -loadplug-in PLUGINNAME[,<path to INI file>]
 
- * to a file
+  ex.
+     -loadplug-in /myplug-indir/OneVsOne.so,/myconfigdir/ovso.ini
+  
+The INI file
+============
 
- contest 2006-08-27 12:28:32 karlik25-Koziol 10-8
- official 2006-08-27 12:34:56 Koziol-karlik25 10-9
- contest 2006-08-27 12:43:08 karlik25-catay 10-6
- official 2006-08-27 12:48:46 catay-karlik25 10-6
- contest 2006-08-27 12:57:50 karlik25-catay 10-8
+A little more info about the plug-in and the ini configuration file.
 
- * to debug level 2
+Example INI files for hix, classic, fancy 1vs1 styles can be found in the 
+example directory.
 
- DEBUG::OneVsOne PLUGIN:: SCORES :: official 2006-08-27 18:25:21
- Thonolan-catay 10-3
+The main purpose of the ini file is to make the plug-in more customizable 
+and to avoid harcoded uglyness.
+
+A INI configuration file has 4 sections which each hold different
+parameters and values :
+
+[general]
+
+  Contain's the most obvious stuff like 
+
+  > max_lives
+
+    The life count each player has. For the 1vs1 league this has to be set 
+    to 10.   
+
+  > style 
+
+    Which style gets reported to the 1vs1 league site after an official
+    match was played. 
+
+  > compatibility 
+
+    Is a flag that when true still allows the use of the /official
+    command. Mainly to stay compatible with the old version and to not
+    annoy players. The /official command got superseded by the command 
+    /ovso match official.
+
+[commands]
+
+  It is possible to define your own 'match' commands like this :
+
+  syntax :
+  <command> = <keyword>
+ 
+  example :
+  official = official
+  contest = contest2009
+  
+  For now we only need 'official'. After an official match the keyword
+  also wil be send to the 1vs1 league site. That way we know what kind
+  of match was played.  When there is a new contest for example , we can 
+  add a contest command with different keyword and distinguish that way 
+  what kind of match it was.
+
+  To issue a match, we use the in-game  /ovso match <command> .
+
+[communication]
+
+  This part mainly deals with plug-in vs 1vs1 league site interaction.
+
+  > httpuri
+
+  Is the uri at which the plug-in communicates with the 1vs1 league site. 
+  All communication happens over http.
+
+  > enable_motd
+
+  When set to true the motd at the 1vs1 league site will be displayed
+  when a player joins. It is also possible the change the motd from
+  within the game if you have the OVSO_CFG permission set.  
+  This is possible with /ovso motd set <message>
+
+  > enable_welcome
+
+  When set to true the welcome message set at the 1vs1 league site will
+  be displayed when a player joins.
+
+  Both the motd & welcome message make centralized management possible
+  from league site. It ensures that welcome messages across 1vs1 are all 
+  the same. We don't have to annoy server owners when we want to change 
+  them.
+
+  > refresh_interval
+
+  The interval at which the plug-in will refresh his cached version of
+  the welcome and motd message. The default is 1 hour and ONLY when there 
+  is a player on the server.
+
+[logging]
+
+  > logfile
+
+  The logfile will store all the official played matches. The plug-in
+  will send the scores and a lot more of info to the league site in
+  realtime. When this fails , it is handy to have a backup system in
+  place. If we store the info also to file we can later mail it to the
+  league site. The mail will be automatically processed and checks will
+  occuer to see if the match already was recorded.
+
+  In the example directory the script 'report_matches.sh' is provided 
+  which can be placed in crontab to mail on a daily basis the match
+  reports.
+
+In-game commands
+================
+
+The OneVsOne plug-in provides the following in-game commands.
+Commands with (*) are not avaible in basic mode (without INI file).
+
+ > /ovso help [<action>]
+
+   Lists a brief help section about all the available actions.
 
 
-All the official and contest matches are also recorded.
-For recording you have to specify the -recdir <dirname>
-in your bzfs config file otherwise recording won't work.
+ > /ovso match [<match type>]  (*)
 
-Also don't put the -recbuf option in your config file,
-recording won't work if you do.
+   Declare a match of a certain match type. Executed without the match
+   type paramater it provides an overview of the available types.
 
-The recording is named as follows : 
+ > /ovso register <emailaddress>  (*)
 
- winner[score]_loser[score]_yyyymmdd_hhmmss.bzr
+   A player can subscribe to the 1vs1 league with this action.    
+   A mail will with activation link  be send to the provided e-mail
+   address.
 
-Example : Koziol[10]_karlik25[9]_20060827_123456.bzr
+ > /ovso playerinfo <callsign> [<callsign> ...]  (*)
+
+   Queries the 1vs1 league site and displays in-game the player(s)
+   league info.
+
+ > /ovso topscore [<items>]  (*)
+
+   Queries the 1vs1 league site and displays the monthly player ranking.
+   The amount of items to return can be provided, default is 20. 
+
+ > /ovso topzelo [<items>]  (*)
+
+   Queries the 1vs1 league site and displays the players zelo ranking.
+   The amount of items to return can be provided, default is 20. 
+
+ > /ovso motd <get>|<set [message]>  (*)
+
+   Update the Message Of The Day on the 1vs1 league site.
+   This requires the OVSO_CFG permission in the groupdb file.
+
+ > /ovso lives <get>|<set [life count]>
+
+   Set/get the maximum life count.
+   This requires the OVSO_CFG permission in the groupdb file.
+
+
+Other features
+==============
+
+ > superkill
+
+  Players are also able to use the /superkill command. 
+  Using /superkill is not possible (even not by an admin/cop) when
+  a official/... match is in progress or when a player himself declared 
+  a match.
+
+ > recording
+ 
+   All the official/... matches are also recorded. For recording you 
+   have to specify the -recdir <dirname> in your bzfs config file otherwise 
+   recording won't work.
+ 
+   Also don't put the -recbuf option in your config file, recording won't 
+   work if you do.
+ 
+   The recording is named as follows : 
+ 
+   winner[score]_loser[score]_yyyymmdd_hhmmss.bzr
+ 
+   Ex:
+ 
+     Koziol[10]_karlik25[9]_20060827_123456.bzr
+ 
+ > scores logged to debug level 2
+
+   All the scores of official/... matches is also logged by bzfs at 
+   debug level 2.
+   
+   Search for the pattern "DEBUG::OneVsOne PLUGIN:: SCORES" .
 
 
 Todo
 ====
 
- * Making the bz_Load method error proof.
-   Doing better error checks for plugin parameters.
-   Also making sure the plugin keeps working correct
-   when load/unloadin it manually.
+ > The plug-in probably doesn't work like it should when load/unloading it 
+   manually.
 
- * Remove the debug code. 
+ > Let the plug-in generate the random worlds.
 
- * Make sure the plugin handles it well when 
-   bzfs config allows more then 2 users. Now you have
-   to make sure your bzfs config is correct.
-   It is possible to make the plugin handle it correct.
+ > Make sure the plug-in handles it well when bzfs config allows more 
+   then 2 users. Now you have to make sure your bzfs config is correct.
+   It is possible to let the plug-in handle this.
 
- * Catch zelo info from the 1vs1 league site (Chestal's idea)
+ > No idea if the code builds on Windows. 
+   This code was only tested on Linux.
 
- * The official/contest commands should not be hardcoded. 
-   It would be much nicer if it was a configuration option, that
-   way everybody can decide which /command he wants for is server
-   setup.
+ > A lot of other stuff I forget.
 
- * Seems not the compile on the windows platform because of 
-   strcmp/strcasecmp functions. I don't have access to a 
-   windows build environment , so can't test it. :(
 
 Credits:
 ========
 
 To much people to name, I will sure forget people here.
 
-Pimpinella : the original coder of the first bzflag 1vs1
-             implementation.
+Pimpinella : 
 
-Strayer    : for the nifty php scripts which send/receive
-			 the data from/to the plugin.	
+ The original coder of the first bzflag 1vs1 implementation.
+
+Strayer: 
+
+ For the nifty php scripts that send/receive the data from/to 
+ the plug-in and for all the code that powers the 1vs1 league site.
 
 Also thanks to all the people who helped me test it :
 (Alphabetic order)
 
 Birdie, Chestal, Grumpf, Karlik25, Kierra, Koziol, MasterYoda, 
-Mr_Molez, Romfis, Thonolan.
+Mr_Molez, Romfis, Thonolan, Brad, ... so many others. 
+
+Special thanks also to all the 1vs1 league players, they make this
+league so attractive:
+
+ http://1vs1.bzleague.com/allplayers.php
+
 
 Changelog:
 ==========
 
- * OneVsOne 1.0.3 (9 November 2008)
+ * OneVsOne 1.0.3 (13 May 2009)
 
-   - To much to name :P
+   - To much to name and to lazy to tell :P
 
  * OneVsOne 1.0.2 (3 December 2007)
 
