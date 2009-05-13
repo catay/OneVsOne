@@ -1,0 +1,241 @@
+Index: CmdLineOptions.cxx
+===================================================================
+RCS file: /cvsroot/bzflag/bzflag/src/bzfs/CmdLineOptions.cxx,v
+retrieving revision 2.37.2.15
+diff -u -r2.37.2.15 CmdLineOptions.cxx
+--- CmdLineOptions.cxx	6 Dec 2006 05:43:42 -0000	2.37.2.15
++++ CmdLineOptions.cxx	6 Jan 2007 14:57:30 -0000
+@@ -69,6 +69,7 @@
+ "[-disableBots] "
+ "[+f {good|<id>}] "
+ "[-f {bad|<id>}] "
++"[-fancy] "
+ "[-fb] "
+ "[-filterCallsigns] "
+ "[-filterChat] "
+@@ -165,6 +166,7 @@
+ "\t-disableBots: disallow clients from using autopilot or robots\n"
+ "\t+f: always have flag <id> available\n"
+ "\t-f: never randomly generate flag <id>\n"
++"\t-fancy: use random arcs\n"
+ "\t-fb: allow flags on box buildings\n"
+ "\t-filterCallsigns: filter callsigns to disallow inappropriate user names\n"
+ "\t-filterChat: filter chat messages\n"
+@@ -702,7 +704,9 @@
+ 	  options.flagCount[fDesc] += rptCnt;
+ 	}
+       }
+-    } else if (strcmp(argv[i], "-fb") == 0) {
++    } else if (strcmp(argv[i], "-fancy") == 0) { 
++	  options.fancy = true;  
++	} else if (strcmp(argv[i], "-fb") == 0) {
+       // flags on buildings
+       options.flagsOnBuildings = true;
+     } else if (strcmp(argv[i], "-filterCallsigns") == 0) {
+Index: CmdLineOptions.h
+===================================================================
+RCS file: /cvsroot/bzflag/bzflag/src/bzfs/CmdLineOptions.h,v
+retrieving revision 2.18.2.6
+diff -u -r2.18.2.6 CmdLineOptions.h
+--- CmdLineOptions.h	6 Aug 2006 02:44:18 -0000	2.18.2.6
++++ CmdLineOptions.h	6 Jan 2007 14:57:30 -0000
+@@ -71,7 +71,7 @@
+     idlekickthresh(-1.0), timeLimit(0.0f), timeElapsed(0.0f),
+     linearAcceleration(_DEFAULT_LIN_ACCEL), angularAcceleration(_DEFAULT_ANGLE_ACCELL), useGivenPort(false),
+     useFallbackPort(false), requireUDP(false), randomBoxes(false),
+-    randomCTF(false), flagsOnBuildings(false), respawnOnBuildings(false),
++    randomCTF(false), fancy(false), flagsOnBuildings(false), respawnOnBuildings(false),
+     oneGameOnly(false), timeManualStart(false), randomHeights(false),
+     useTeleporters(false), teamKillerDies(true), printScore(false),
+     publicizeServer(false), replayServer(false), startRecording(false),
+@@ -147,6 +147,7 @@
+   bool			requireUDP;
+   bool			randomBoxes;
+   bool			randomCTF;
++  bool			fancy;
+   bool			flagsOnBuildings;
+   bool			respawnOnBuildings;
+   bool			oneGameOnly;
+Index: WorldInfo.h
+===================================================================
+RCS file: /cvsroot/bzflag/bzflag/src/bzfs/WorldInfo.h,v
+retrieving revision 2.8.2.3
+diff -u -r2.8.2.3 WorldInfo.h
+--- WorldInfo.h	4 Jan 2006 00:50:37 -0000	2.8.2.3
++++ WorldInfo.h	6 Jan 2007 14:57:31 -0000
+@@ -91,6 +91,9 @@
+ 		     bool horizontal, bool drive = false, bool shoot = false);
+   void addBase(const float pos[3], float r, const float size[3],
+ 	       int color, bool drive = false, bool shoot = false);
++  void addSphere(float x, float y, float z, int divisions);
++  void addArc(float x, float y, float z, float r, float w, float d, int divisions);
++  void addCone(float x, float y, float z, int divisions);
+ 
+   float getWaterLevel() const;
+   float getMaxWorldHeight() const;
+Index: WorldInfo.cxx
+===================================================================
+RCS file: /cvsroot/bzflag/bzflag/src/bzfs/WorldInfo.cxx,v
+retrieving revision 2.9.2.3
+diff -u -r2.9.2.3 WorldInfo.cxx
+--- WorldInfo.cxx	6 Dec 2006 05:43:42 -0000	2.9.2.3
++++ WorldInfo.cxx	6 Jan 2007 14:57:32 -0000
+@@ -153,6 +153,105 @@
+   OBSTACLEMGR.addWorldObstacle(base);
+ }
+ 
++void WorldInfo::addArc(float x, float y, float z, float r, float w , float d, int divisions )
++{
++  MeshTransform xform;
++
++  const float pos[3] = {x, y, z};
++  const float _size[3] = {r, w, d};
++  const float texsize[4] = {-8.0f, -8.0f, -8.0f, -8.0f};
++
++  const float flipScale[3] = {1.0f, 1.0f, 1.0f};
++  const float flipShift[3] = {0.0f, 0.0f, 0.0f};
++  const float flipShear[3] = {0.0f, 0.0f, 0.0f};
++
++  xform.addScale(flipScale);
++  xform.addShift(flipShift);
++  xform.addShear(flipShear);
++
++  BzMaterial materials[6];
++  materials[0].setTexture("roof");
++  materials[1].setTexture("root");
++  materials[2].setTexture("boxwall");
++  materials[3].setTexture("boxwall");
++  materials[4].setTexture("wall");
++  materials[5].setTexture("wall");
++
++  const BzMaterial* mats[6];
++
++  for (int i=0; i < 6; i++)
++         mats[i] = MATERIALMGR.addMaterial(&materials[i]);
++
++  ArcObstacle* arc = new ArcObstacle(xform, pos, _size, 0.0f,360, 1,texsize, true, divisions, mats, -1, false, false, false );
++
++  OBSTACLEMGR.addWorldObstacle(arc);
++}
++
++void WorldInfo::addCone(float x, float y, float z, int divisions)
++{
++  MeshTransform xform;
++  const float pos[3] = {x, y, z};
++  const float _size[3] = {8.0f, 8.0f, 15.0f};
++  const float diffuse[4] = {0.5f, 0.5f, 0.5f, 0.5f};
++  const float texsize[2] = {-4.0f, -4.0f};
++
++  const float flipScale[3] = {1.0f, 1.0f, 1.0f};
++  const float flipShift[3] = {0.0f, 0.0f, 0.0f};
++  const float flipShear[3] = {0.0f, 0.0f, 0.0f};
++
++
++  xform.addScale(flipScale);
++  xform.addShift(flipShift);
++  xform.addShear(flipShear);
++
++  BzMaterial materials[4];
++  /*
++  materials[0].setTexture("boxwall");
++  materials[1].setTexture("roof");
++  materials[2].setTexture("wall");
++  materials[3].setTexture("wall");
++  */
++
++  materials[0].setDiffuse(diffuse);
++  materials[1].setDiffuse(diffuse);
++  materials[2].setDiffuse(diffuse);
++  materials[3].setDiffuse(diffuse);
++
++  const BzMaterial* mats[4];
++  for (int i=0; i < 4; i++)
++     mats[i] = MATERIALMGR.addMaterial(&materials[i]);
++
++  ConeObstacle* cone = new ConeObstacle(xform, pos, _size, 0.0f,360, texsize, true, divisions, mats, -1, true, false, false );
++
++  OBSTACLEMGR.addWorldObstacle(cone);
++}
++
++void WorldInfo::addSphere(float x, float y, float z , int divisions)
++{
++  MeshTransform xform;
++  const float pos[3] = {x, y, z};
++  const float _size[3] = {10.0f, 10.0f, -10.0f};
++  const float texsize[2] = {-4.0f, -4.0f};
++
++  const float flipScale[3] = {1.0f, 1.0f, 1.0f};
++  const float flipShift[3] = {1.0f, 1.0f, 1.0f};
++  const float flipShear[3] = {0.0f, 0.0f, 0.0f};
++  xform.addScale(flipScale);
++  xform.addShift(flipShift);
++  xform.addShear(flipShear);
++
++  BzMaterial materials[2];
++  materials[0].setTexture("tetrawall");
++  materials[1].setTexture("roof");
++
++  const BzMaterial* mats[2];
++  mats[0] = MATERIALMGR.addMaterial(&materials[0]);
++  mats[1] = MATERIALMGR.addMaterial(&materials[1]);
++
++  SphereObstacle* sphere = new SphereObstacle(xform, pos, _size, 0.0f, texsize, true, false, divisions, mats, -1, true, false, false );
++
++  OBSTACLEMGR.addWorldObstacle(sphere);
++}
+ 
+ void WorldInfo::makeWaterMaterial()
+ {
+Index: WorldGenerators.cxx
+===================================================================
+RCS file: /cvsroot/bzflag/bzflag/src/bzfs/WorldGenerators.cxx,v
+retrieving revision 2.6.2.1
+diff -u -r2.6.2.1 WorldGenerators.cxx
+--- WorldGenerators.cxx	4 Jan 2006 00:50:37 -0000	2.6.2.1
++++ WorldGenerators.cxx	6 Jan 2007 14:57:33 -0000
+@@ -84,6 +84,45 @@
+ 	pyrBase, pyrBase, h);
+   }
+ 
++  if (clOptions->fancy) {
++
++    // make arcs
++    const int numArcs = int((0.5f + 0.7f * bzfrand()) * actCitySize * actCitySize);
++
++    for (i = 0; i < numArcs; i++) {
++      myWorld->addArc(worldSize * ((float)bzfrand() - 0.5f),
++      worldSize * ((float)bzfrand() - 0.5f), 0.0f, 15, 15, 15, 24);
++
++      myWorld->addArc(worldSize * ((float)bzfrand() - 0.5f),
++      worldSize * ((float)bzfrand() - 0.5f), 0.0f, 15, 15, 15, 3);
++
++      myWorld->addArc(worldSize * ((float)bzfrand() - 0.5f),
++      worldSize * ((float)bzfrand() - 0.5f), 0.0f, 15, 15, 15, 6);
++    }
++
++    // make cones
++	const int numCones = int((0.5f + 0.7f * bzfrand()) * actCitySize * actCitySize);
++	float x,y;
++
++    for (i = 0; i < numCones; i++) {
++	  x = worldSize * ((float)bzfrand() - 0.5f);
++	  y = worldSize * ((float)bzfrand() - 0.5f);
++
++      myWorld->addCone(x,y,0.0f, 16);
++      myWorld->addSphere(x + 20,y,20.0f, 4);
++    }
++
++    // make spheres
++	/*
++	const int numSpheres = int((0.5f + 0.7f * bzfrand()) * actCitySize * actCitySize);
++
++    for (i = 0; i < numSpheres; i++) {
++      myWorld->addSphere(worldSize * ((float)bzfrand() - 0.5f),
++      worldSize * ((float)bzfrand() - 0.5f),9.0f, 4);
++    }*/
++
++  }
++
+   if (clOptions->useTeleporters) {
+     // make teleporters
+     float teleBreadth = BZDB.eval(StateDatabase::BZDB_TELEBREADTH);
