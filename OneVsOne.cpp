@@ -486,7 +486,7 @@ void OneVsOne::showHelp(int playerID, bzApiString action)
     bz_sendTextMessage( BZ_SERVER, playerID,"Usage: /ovso topzelo [<items>]" );
   else if (action == "motd" && cfgPerm && isComm )
     bz_sendTextMessage( BZ_SERVER, playerID,"Usage: /ovso motd <get>|<set [message]> " );
-  else if (action == "lives" && cfgPerm && isComm )
+  else if (action == "lives" && cfgPerm)
     bz_sendTextMessage( BZ_SERVER, playerID,"Usage: /ovso lives <get>|<set [life count]> " );
   else if (action == "reload" && cfgPerm && isComm )
     bz_sendTextMessage( BZ_SERVER, playerID,"Usage: /ovso reload " );
