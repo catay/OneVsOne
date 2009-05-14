@@ -249,6 +249,10 @@ Todo
  > No idea if the code builds on Windows. 
    This code was only tested on Linux.
 
+ > Suppress the error message for the Welcome & Motd message when the
+   league site is not reachable. (Add a disableError(bool) method to
+   the URL handler class)
+
  > A lot of other stuff I forget.
 
 
