@@ -17,8 +17,7 @@ Introduction
  to make the league/game more attractive.
 
  The plug-in does NOT contain any 1vs1 league site specific code which 
- interacts with the plug-in. This code is developed by another developer
- called by strayer.
+ interacts with the plug-in. This code is developed by strayer.
 
  To use the full feature set of the plug-in the league code is mandatory.
  It is ofcourse always possible to write this from scratch.
@@ -59,7 +58,7 @@ Example INI files for hix, classic, fancy 1vs1 styles can be found in the
 example directory.
 
 The main purpose of the ini file is to make the plug-in more customizable 
-and to avoid harcoded uglyness.
+and to avoid hardcoded uglyness.
 
 A INI configuration file has 4 sections which each hold different
 parameters and values :
