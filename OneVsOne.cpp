@@ -716,7 +716,12 @@ void OneVsOne::logRecordMatch(std::string mType, int winner, int loser)
       Players[winner].callsign.c_str(), Players[loser].callsign.c_str(), Players[loser].losses, Players[winner].losses,
       wbzid.c_str(), lbzid.c_str(),wip.c_str(), lip.c_str(), gameStyle.c_str(), duration, serverName.c_str());
 
-  reportData = std::string ("action=report") + std::string("&server=") + std::string(bz_urlEncode(serverName.c_str()))
+  // save scores to file and bzfs log
+  saveScores( scores );
+
+  // do reporting over http if enabled
+  if ( isComm ) {
+    reportData = std::string ("action=report") + std::string("&server=") + std::string(bz_urlEncode(serverName.c_str()))
     + std::string("&style=") + std::string(bz_urlEncode(gameStyle.c_str())) + 
     std::string("&type=") + std::string(bz_urlEncode(gameTypes[mType].c_str())) + 
     std::string("&date=") + std::string(bz_urlEncode(match_date)) + std::string("&winner=") + 
@@ -727,11 +732,6 @@ void OneVsOne::logRecordMatch(std::string mType, int winner, int loser)
     std::string("&wip=") + std::string(wip.c_str()) + std::string("&lip=") + std::string(lip.c_str() +
     std::string("&duration=") + to_string(duration));
 
-  saveScores( scores );
-
-  // do reporting over http if enabled
-
-  if ( isComm ) {
     reportHandler.setPlayerId(BZ_ALLUSERS);
     bz_addURLJob(httpUri.c_str(), &reportHandler, reportData.c_str());
   }
