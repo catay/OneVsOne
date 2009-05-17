@@ -104,6 +104,7 @@ class OneVsOne : public bz_EventHandler, public bz_CustomSlashCommandHandler
     void getTopScore(int p, bzAPIStringList*);
     void getTopZelo(int p, bzAPIStringList*);
     void setMatch(int p, bzAPIStringList*);
+    void unSetMatchAll(void);
     void handleMotd(int p, bzAPIStringList*);
     void setLives(int p, bzAPIStringList*);
     void showHelp(int p, bzApiString action = "all");
@@ -405,6 +406,17 @@ void OneVsOne::setMatch(int playerID, bzAPIStringList* params)
 
 }
 
+void OneVsOne::unSetMatchAll()
+{
+  std::map<int,OneVsOnePlayer>::iterator it = Players.begin();
+
+  for( ; it != Players.end(); it++ ) {
+	bz_sendTextMessagef ( BZ_SERVER,(*it).first, 
+	    "The match is cancelled because the opponent left. Please rejoin." );
+    (*it).second.matchType.clear();
+  }
+}  
+
 void OneVsOne::handleMotd(int playerID, bzAPIStringList* params) 
 {
 
@@ -687,19 +699,22 @@ void OneVsOne::logRecordMatch(std::string mType, int winner, int loser)
 
   playerRecord = bz_getPlayerByIndex ( winner );
   bzApiString wbzid = playerRecord->bzID;
+  bzApiString wip = playerRecord->ipAddress;
+
   bz_freePlayerRecord ( playerRecord );
 
   playerRecord = bz_getPlayerByIndex ( loser );
   bzApiString lbzid = playerRecord->bzID;
+  bzApiString lip = playerRecord->ipAddress;
   bz_freePlayerRecord ( playerRecord );
 
   if (bz_getPublic())
     serverName = bz_getPublicAddr().c_str();
 
   // format scores 
-  sprintf( scores,"%s\t%s\t%s\t-\t%s\t%d\t-\t%d\t%s\t-\t%s\t%s\t%d\t%s\n", gameTypes[mType].c_str(), match_date, 
+  sprintf( scores,"%s\t%s\t%s\t-\t%s\t%d\t-\t%d\t%s\t-\t%s\t%s\t%s\t%s\t%d\t%s\n", gameTypes[mType].c_str(), match_date, 
       Players[winner].callsign.c_str(), Players[loser].callsign.c_str(), Players[loser].losses, Players[winner].losses,
-      wbzid.c_str(), lbzid.c_str(), gameStyle.c_str(), duration, serverName.c_str());
+      wbzid.c_str(), lbzid.c_str(),wip.c_str(), lip.c_str(), gameStyle.c_str(), duration, serverName.c_str());
 
   reportData = std::string ("action=report") + std::string("&server=") + std::string(bz_urlEncode(serverName.c_str()))
     + std::string("&style=") + std::string(bz_urlEncode(gameStyle.c_str())) + 
@@ -708,8 +723,9 @@ void OneVsOne::logRecordMatch(std::string mType, int winner, int loser)
     std::string(bz_urlEncode(Players[winner].callsign.c_str())) + std::string("&loser=") + 
     std::string(bz_urlEncode(Players[loser].callsign.c_str())) + std::string("&winner_score=") + 
     to_string(Players[loser].losses) + std::string("&loser_score=") + to_string(Players[winner].losses) + 
-    std::string("&wbzid=") + std::string(wbzid.c_str()) + std::string("&lbzid=") + 
-    std::string(lbzid.c_str() + std::string("&duration=") + to_string(duration));
+    std::string("&wbzid=") + std::string(wbzid.c_str()) + std::string("&lbzid=") + std::string(lbzid.c_str()) +
+    std::string("&wip=") + std::string(wip.c_str()) + std::string("&lip=") + std::string(lip.c_str() +
+    std::string("&duration=") + to_string(duration));
 
   saveScores( scores );
 
@@ -747,7 +763,12 @@ void OneVsOne::process ( bz_EventData *eventData )
     bz_PlayerJoinPartEventData *partData = (bz_PlayerJoinPartEventData*)eventData;
 
     if ( partData->team != eObservers ) {
+
+      if (isMatch())
+      	unSetMatchAll();
+
       delPlayer ( partData->playerID );
+
       if ( recording )
        	bz_stopRecBuf ();
     }
