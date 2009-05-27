@@ -712,9 +712,9 @@ void OneVsOne::logRecordMatch(std::string mType, int winner, int loser)
     serverName = bz_getPublicAddr().c_str();
 
   // format scores 
-  sprintf( scores,"%s\t%s\t%s\t-\t%s\t%d\t-\t%d\t%s\t-\t%s\t%s\t%s\t%s\t%d\t%s\n", gameTypes[mType].c_str(), match_date, 
+  sprintf( scores,"%s\t%s\t%s\t-\t%s\t%d\t-\t%d\t%s\t-\t%s\t%s\t%d\t%s\t%s\t%s\n", gameTypes[mType].c_str(), match_date, 
       Players[winner].callsign.c_str(), Players[loser].callsign.c_str(), Players[loser].losses, Players[winner].losses,
-      wbzid.c_str(), lbzid.c_str(),wip.c_str(), lip.c_str(), gameStyle.c_str(), duration, serverName.c_str());
+      wbzid.c_str(), lbzid.c_str(), gameStyle.c_str(), duration, serverName.c_str(),wip.c_str(), lip.c_str());
 
   // save scores to file and bzfs log
   saveScores( scores );
@@ -757,6 +757,9 @@ void OneVsOne::process ( bz_EventData *eventData )
 
     if (joinData->team != eObservers)
       addPlayer(joinData->playerID,joinData->callsign.c_str());
+
+    if (joinData->team == eObservers && isMatch())
+      bz_sendTextMessagef ( BZ_SERVER, joinData->playerID,"Match in progress ... [%s]", matchType.c_str());
   }
 
   if (eventData->eventType == bz_ePlayerPartEvent) {
@@ -766,6 +769,8 @@ void OneVsOne::process ( bz_EventData *eventData )
 
       if (isMatch())
       	unSetMatchAll();
+
+      matchType.clear();
 
       delPlayer ( partData->playerID );
 
@@ -796,6 +801,9 @@ void OneVsOne::process ( bz_EventData *eventData )
 	// remove all players from the list
 	delPlayer ( loser );
 	delPlayer ( winner );
+
+	// reset matchtype
+	matchType.clear();
       }
     }
   }
