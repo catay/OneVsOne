@@ -712,7 +712,7 @@ void OneVsOne::logRecordMatch(std::string mType, int winner, int loser)
     serverName = bz_getPublicAddr().c_str();
 
   // format scores 
-  sprintf( scores,"%s\t%s\t%s\t-\t%s\t%d\t-\t%d\t%s\t-\t%s\t%s\t%d\t%s\t%s\t%s\n", gameTypes[mType].c_str(), match_date, 
+  sprintf( scores,"%s\t%s\t%s\t-\t%s\t%d\t-\t%d\t%s\t-\t%s\t%s\t%d\t%s\t%s-\t%s\n", gameTypes[mType].c_str(), match_date, 
       Players[winner].callsign.c_str(), Players[loser].callsign.c_str(), Players[loser].losses, Players[winner].losses,
       wbzid.c_str(), lbzid.c_str(), gameStyle.c_str(), duration, serverName.c_str(),wip.c_str(), lip.c_str());
 
