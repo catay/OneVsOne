@@ -1,4 +1,4 @@
-OneVsOne plug-in version 1.0.3  (May 13th, 2009)
+OneVsOne plug-in version 1.0.3  (Dec 15th, 2009)
 ------------------------------------------------
 
 Introduction
@@ -284,7 +284,7 @@ league so attractive:
 Changelog:
 ==========
 
- * OneVsOne 1.0.3 (13 May 2009)
+ * OneVsOne 1.0.3 (15 Dec 2009)
 
    - To much to name and to lazy to tell :P
 
