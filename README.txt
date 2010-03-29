@@ -44,7 +44,7 @@ The plug-in takes a ini based configuration file as a parameter.  In
 case no INI file is provided it falls back to basic mode and all the 
 1vs1 league integration code is deactivated.
 
- -loadplug-in PLUGINNAME[,<path to INI file>]
+ -loadplugin PLUGINNAME[,<path to INI file>]
 
   ex.
      -loadplug-in /myplug-indir/OneVsOne.so,/myconfigdir/ovso.ini
