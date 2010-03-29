@@ -47,7 +47,7 @@ case no INI file is provided it falls back to basic mode and all the
  -loadplugin PLUGINNAME[,<path to INI file>]
 
   ex.
-     -loadplug-in /myplug-indir/OneVsOne.so,/myconfigdir/ovso.ini
+     -loadplugin /myplug-indir/OneVsOne.so,/myconfigdir/ovso.ini
   
 The INI file
 ============
