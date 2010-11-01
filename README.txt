@@ -7,7 +7,7 @@ Introduction
  The OneVsOne plug-in is a bzfs plug-in specially created for one of the
  finest BZFlag leagues:
 
- Zongo's 1vs1 BZFlag league: http://1vs1.bzleague.com
+ Zongo's 1vs1 BZFlag league: http://1vs1.bzflag.net
 
  The plug-in enhances player vs player gameplay in BZFlag, allows in-game 
  communication with the league site and provides real-time match reporting.
@@ -278,7 +278,7 @@ Mr_Molez, Romfis, Thonolan, Brad, ... so many others.
 Special thanks also to all the 1vs1 league players, they make this
 league so attractive:
 
- http://1vs1.bzleague.com/allplayers.php
+ http://1vs1.bzflag.net/allplayers.php
 
 
 Changelog:
