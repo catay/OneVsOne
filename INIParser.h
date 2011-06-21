@@ -16,10 +16,10 @@ class INIParser
     ~INIParser() {};
 
     int parse();
-    Parameters & getParameters(char * section);
-    const std::string getValue(char * section, char * name);
-    bool isSection(char * section);
-    bool isValue(char * section, char * name);
+    Parameters & getParameters(const char * section);
+    const std::string getValue(const char * section, const char * name);
+    bool isSection(const char * section);
+    bool isValue(const char * section, const char * name);
 
     bool isNoSection();
     bool isStartSection();

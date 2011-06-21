@@ -12,8 +12,6 @@
 #include "UrlHandler.h"
 #include "INIParser.h"
 
-BZ_GET_PLUGIN_VERSION
-
 #define ONEVSONE "1.0.3"
 
 #define MAX_PLAYERS 2
@@ -49,9 +47,10 @@ bool replace(std::string& s,const char * orig,const char * rep )
 }
 
 
-class OneVsOne : public bz_EventHandler, public bz_CustomSlashCommandHandler
+class OneVsOne : public bz_Plugin, public bz_CustomSlashCommandHandler
 {
   public:
+
     OneVsOne();
     ~OneVsOne() {};
 
@@ -60,8 +59,11 @@ class OneVsOne : public bz_EventHandler, public bz_CustomSlashCommandHandler
 
     Parameters gameTypes;
 
-    virtual void process ( bz_EventData *eventData );
-    virtual bool handle ( int playerID, bzApiString, bzApiString, bzAPIStringList*);
+    virtual const char* Name (){return "One Vs One";}
+    virtual void Init ( const char* config); 
+    virtual void Cleanup ();
+    virtual void Event ( bz_EventData *eventData );
+    virtual bool SlashCommand ( int playerID, bz_ApiString, bz_ApiString, bz_APIStringList*);
 
   protected:
 			
@@ -99,15 +101,15 @@ class OneVsOne : public bz_EventHandler, public bz_CustomSlashCommandHandler
     bool isMatch();
 
     void logRecordMatch(std::string mType, int winner, int loser);
-    void registerPlayer(int p, bzAPIStringList*);
-    void getPlayerInfo(int p, bzAPIStringList*);
-    void getTopScore(int p, bzAPIStringList*);
-    void getTopZelo(int p, bzAPIStringList*);
-    void setMatch(int p, bzAPIStringList*);
+    void registerPlayer(int p, bz_APIStringList*);
+    void getPlayerInfo(int p, bz_APIStringList*);
+    void getTopScore(int p, bz_APIStringList*);
+    void getTopZelo(int p, bz_APIStringList*);
+    void setMatch(int p, bz_APIStringList*);
     void unSetMatchAll(void);
-    void handleMotd(int p, bzAPIStringList*);
-    void setLives(int p, bzAPIStringList*);
-    void showHelp(int p, bzApiString action = "all");
+    void handleMotd(int p, bz_APIStringList*);
+    void setLives(int p, bz_APIStringList*);
+    void showHelp(int p, bz_ApiString action = "all");
 
     void printScore(void);
     void printBanner(int winner, int loser);
@@ -122,7 +124,9 @@ class OneVsOne : public bz_EventHandler, public bz_CustomSlashCommandHandler
 
 };
 
-OneVsOne oneVsOne;
+BZ_PLUGIN(OneVsOne)
+
+
 
 OneVsOne::OneVsOne()
 {
@@ -191,7 +195,7 @@ bool OneVsOne::readConfig(std::string fileName)
   gameTypes.clear();
 
   if (config.isSection("commands") )
-    oneVsOne.gameTypes = config.getParameters("commands");
+    gameTypes = config.getParameters("commands");
 
   if (config.isSection("communication") ) {
     if ( config.isValue("communication","httpuri") ) {
@@ -252,10 +256,10 @@ bool OneVsOne::isMatch()
   return true;
 }  
 
-void OneVsOne::registerPlayer(int playerID, bzAPIStringList* params)
+void OneVsOne::registerPlayer(int playerID, bz_APIStringList* params)
 {
   if ( params->size() == 2 ) {
-    bz_PlayerRecord *playerRecord;
+    bz_BasePlayerRecord *playerRecord;
 
     playerRecord = bz_getPlayerByIndex ( playerID );
 
@@ -278,10 +282,10 @@ void OneVsOne::registerPlayer(int playerID, bzAPIStringList* params)
     showHelp(playerID, params->get(0));
 }
 
-void OneVsOne::getPlayerInfo(int playerID, bzAPIStringList* params) 
+void OneVsOne::getPlayerInfo(int playerID, bz_APIStringList* params) 
 {
   if ( params->size() >= 2 ) {
-    bz_PlayerRecord *playerRecord;
+    bz_BasePlayerRecord *playerRecord;
     playerRecord = bz_getPlayerByIndex ( playerID );
 
     std::string  playerinfodata = "action=playerinfo";
@@ -298,12 +302,12 @@ void OneVsOne::getPlayerInfo(int playerID, bzAPIStringList* params)
     showHelp(playerID, params->get(0));
 }
 
-void OneVsOne::getTopScore(int playerID, bzAPIStringList* params) 
+void OneVsOne::getTopScore(int playerID, bz_APIStringList* params) 
 {
   if ( params->size() >  2 ) 
     showHelp(playerID, params->get(0));
   else {
-    bz_PlayerRecord *playerRecord;
+    bz_BasePlayerRecord *playerRecord;
     std::string items = "";
 
     playerRecord = bz_getPlayerByIndex ( playerID );
@@ -321,12 +325,12 @@ void OneVsOne::getTopScore(int playerID, bzAPIStringList* params)
   }
 }
 
-void OneVsOne::getTopZelo(int playerID, bzAPIStringList* params) 
+void OneVsOne::getTopZelo(int playerID, bz_APIStringList* params) 
 {
   if ( params->size() >  2 ) 
     showHelp(playerID, params->get(0));
   else {
-    bz_PlayerRecord *playerRecord;
+    bz_BasePlayerRecord *playerRecord;
     std::string items = "";
 
     playerRecord = bz_getPlayerByIndex ( playerID );
@@ -344,7 +348,7 @@ void OneVsOne::getTopZelo(int playerID, bzAPIStringList* params)
   }
 }
 
-void OneVsOne::setMatch(int playerID, bzAPIStringList* params) 
+void OneVsOne::setMatch(int playerID, bz_APIStringList* params) 
 {
   Parameters::iterator matchTypeIt;
 
@@ -353,7 +357,7 @@ void OneVsOne::setMatch(int playerID, bzAPIStringList* params)
     matchTypeIt = gameTypes.find(params->get(1).c_str());
 
     if ( matchTypeIt != gameTypes.end()) {
-      bz_PlayerRecord *playerRecord;
+      bz_BasePlayerRecord *playerRecord;
       playerRecord = bz_getPlayerByIndex( playerID );
 
       if ( playerRecord->team == eObservers ) {
@@ -401,7 +405,7 @@ void OneVsOne::setMatch(int playerID, bzAPIStringList* params)
   // list all availabe types 
   bz_sendTextMessage( BZ_SERVER, playerID,"Available match types are : ");
   matchTypeIt = gameTypes.begin();
-  for ( ; matchTypeIt != oneVsOne.gameTypes.end(); matchTypeIt++ )
+  for ( ; matchTypeIt != gameTypes.end(); matchTypeIt++ )
     bz_sendTextMessagef( BZ_SERVER, playerID," * %s",(*matchTypeIt).first.c_str());
 
 }
@@ -417,7 +421,7 @@ void OneVsOne::unSetMatchAll()
   }
 }  
 
-void OneVsOne::handleMotd(int playerID, bzAPIStringList* params) 
+void OneVsOne::handleMotd(int playerID, bz_APIStringList* params) 
 {
 
   if ( params->size() ==  2 && params->get(1) == "get" ) {
@@ -435,7 +439,7 @@ void OneVsOne::handleMotd(int playerID, bzAPIStringList* params)
     replace(msg,"%5Ct","%09"); // \t
     replace(msg,"%5Cr","%0d"); // \r
 
-    bz_PlayerRecord *playerRecord;
+    bz_BasePlayerRecord *playerRecord;
     playerRecord = bz_getPlayerByIndex(playerID);
 
     msg += "&bzid=" + std::string(playerRecord->bzID.c_str()) + "&callsign=" + std::string(bz_urlEncode(playerRecord->callsign.c_str())) +
@@ -453,7 +457,7 @@ void OneVsOne::handleMotd(int playerID, bzAPIStringList* params)
 
 }
 
-void OneVsOne::setLives(int playerID, bzAPIStringList* params)
+void OneVsOne::setLives(int playerID, bz_APIStringList* params)
 { 
   if ( params->size() ==  2 && params->get(1) == "get" ) {
     bz_sendTextMessagef ( BZ_SERVER, playerID,"Life count set to %d.", maxLives);
@@ -463,7 +467,7 @@ void OneVsOne::setLives(int playerID, bzAPIStringList* params)
     std::istringstream iss(params->get(2).c_str());
 
     if (( iss >> lives)) { 
-      bz_PlayerRecord *playerRecord; 
+      bz_BasePlayerRecord *playerRecord; 
       playerRecord = bz_getPlayerByIndex ( playerID );
 
       if ( getHighestLoss() < lives && lives > 0 ) {
@@ -480,7 +484,7 @@ void OneVsOne::setLives(int playerID, bzAPIStringList* params)
     showHelp(playerID, params->get(0));
 }
 
-void OneVsOne::showHelp(int playerID, bzApiString action)
+void OneVsOne::showHelp(int playerID, bz_ApiString action)
 {
   action.tolower();
 	  
@@ -695,17 +699,17 @@ void OneVsOne::logRecordMatch(std::string mType, int winner, int loser)
 
   // get bzid's ... dirty
 
-  bz_PlayerRecord *playerRecord;
+  bz_BasePlayerRecord *playerRecord;
 
   playerRecord = bz_getPlayerByIndex ( winner );
-  bzApiString wbzid = playerRecord->bzID;
-  bzApiString wip = playerRecord->ipAddress;
+  bz_ApiString wbzid = playerRecord->bzID;
+  bz_ApiString wip = playerRecord->ipAddress;
 
   bz_freePlayerRecord ( playerRecord );
 
   playerRecord = bz_getPlayerByIndex ( loser );
-  bzApiString lbzid = playerRecord->bzID;
-  bzApiString lip = playerRecord->ipAddress;
+  bz_ApiString lbzid = playerRecord->bzID;
+  bz_ApiString lip = playerRecord->ipAddress;
   bz_freePlayerRecord ( playerRecord );
 
   if (bz_getPublic())
@@ -738,41 +742,41 @@ void OneVsOne::logRecordMatch(std::string mType, int winner, int loser)
 
 }
 
-void OneVsOne::process ( bz_EventData *eventData )
+void OneVsOne::Event ( bz_EventData *eventData )
 {
 
   if (eventData->eventType == bz_ePlayerJoinEvent) {
-    bz_PlayerJoinPartEventData *joinData = (bz_PlayerJoinPartEventData*)eventData;
+    bz_PlayerJoinPartEventData_V1 *joinData = (bz_PlayerJoinPartEventData_V1*)eventData;
 
     if ( isWelcome )
-      showWelcomeMessage(joinData->playerID);
+      showWelcomeMessage(joinData->record->playerID);
 
     if ( isMotd )
-      showMotdBanner(joinData->playerID);
+      showMotdBanner(joinData->record->playerID);
 			
     // revoking superkill perms makes sure admin/cops don't abuse it
     // when a match is in progress ;) 
-    if ( bz_hasPerm ( joinData->playerID, "superkill" ))
-      bz_revokePerm ( joinData->playerID, "superkill" );
+    if ( bz_hasPerm ( joinData->record->playerID, "superkill" ))
+      bz_revokePerm ( joinData->record->playerID, "superkill" );
 
-    if (joinData->team != eObservers)
-      addPlayer(joinData->playerID,joinData->callsign.c_str());
+    if (joinData->record->team != eObservers)
+      addPlayer(joinData->record->playerID,joinData->record->callsign.c_str());
 
-    if (joinData->team == eObservers && isMatch())
-      bz_sendTextMessagef ( BZ_SERVER, joinData->playerID,"Match in progress ... [%s]", matchType.c_str());
+    if (joinData->record->team == eObservers && isMatch())
+      bz_sendTextMessagef ( BZ_SERVER, joinData->record->playerID,"Match in progress ... [%s]", matchType.c_str());
   }
 
   if (eventData->eventType == bz_ePlayerPartEvent) {
-    bz_PlayerJoinPartEventData *partData = (bz_PlayerJoinPartEventData*)eventData;
+    bz_PlayerJoinPartEventData_V1 *partData = (bz_PlayerJoinPartEventData_V1*)eventData;
 
-    if ( partData->team != eObservers ) {
+    if ( partData->record->team != eObservers ) {
 
       if (isMatch())
       	unSetMatchAll();
 
       matchType.clear();
 
-      delPlayer ( partData->playerID );
+      delPlayer ( partData->record->playerID );
 
       if ( recording )
        	bz_stopRecBuf ();
@@ -782,7 +786,7 @@ void OneVsOne::process ( bz_EventData *eventData )
   if (eventData->eventType == bz_ePlayerDieEvent) {
 
     if ( !Players.empty () ) {
-      bz_PlayerDieEventData *dieData = (bz_PlayerDieEventData*)eventData;	
+      bz_PlayerDieEventData_V1 *dieData = (bz_PlayerDieEventData_V1*)eventData;	
       setLoss(dieData->playerID);
 
       printScore();
@@ -809,7 +813,7 @@ void OneVsOne::process ( bz_EventData *eventData )
   }
 
   if (eventData->eventType == bz_eSlashCommandEvent) {
-    bz_SlashCommandEventData *slashCommandData = (bz_SlashCommandEventData*)eventData;	
+    bz_SlashCommandEventData_V1 *slashCommandData = (bz_SlashCommandEventData_V1*)eventData;	
 
     if (strcasecmp(slashCommandData->message.c_str(),"/superkill") == 0) {
       if ( isMatch() )  {
@@ -821,7 +825,7 @@ void OneVsOne::process ( bz_EventData *eventData )
   }
 }
 
-bool OneVsOne::handle ( int playerID, bzApiString cmd, bzApiString msg, bzAPIStringList* cmdParams )
+bool OneVsOne::SlashCommand ( int playerID, bz_ApiString cmd, bz_ApiString msg, bz_APIStringList* cmdParams )
 {
   // transfrom to lowercase
   cmd.tolower();
@@ -839,7 +843,7 @@ bool OneVsOne::handle ( int playerID, bzApiString cmd, bzApiString msg, bzAPIStr
 
   if ( cmd == "ovso") {
     if ( cmdParams->size() >= 1 ) {
-      bzApiString action = cmdParams->get(0);
+      bz_ApiString action = cmdParams->get(0);
       action.tolower();
 
       if ( action == "help") {
@@ -856,7 +860,7 @@ bool OneVsOne::handle ( int playerID, bzApiString cmd, bzApiString msg, bzAPIStr
       }
 
       if ( action == "playerinfo" && isComm ) {
-	bzAPIStringList *p = bz_newStringList();
+	bz_APIStringList *p = bz_newStringList();
        	p->tokenize(msg.c_str(), " ", 0, true);
 	getPlayerInfo(playerID, p);
 	bz_deleteStringList(p);
@@ -879,7 +883,7 @@ bool OneVsOne::handle ( int playerID, bzApiString cmd, bzApiString msg, bzAPIStr
       } 
 
       if ( action == "motd" && cfgPerm && isComm  ) {
-	bzAPIStringList *m = bz_newStringList();
+	bz_APIStringList *m = bz_newStringList();
        	m->tokenize(msg.c_str(), " ", 3, false);
 	handleMotd(playerID, m);
 	bz_deleteStringList(m);
@@ -900,54 +904,48 @@ bool OneVsOne::handle ( int playerID, bzApiString cmd, bzApiString msg, bzAPIStr
   return true;
 }
 
-BZF_PLUGIN_CALL int bz_Load ( const char* commandLine )
+void OneVsOne::Init ( const char* commandLine )
 {
   std::string cmdLine = commandLine;
 
   if (cmdLine.size())
-    if ( ! oneVsOne.readConfig(cmdLine) )
+    if ( ! readConfig(cmdLine) )
       bz_debugMessage( DEBUG_LEVEL, "OneVsOne reading config file failed .. falling back to defaults" );
 
  
-  bz_registerCustomSlashCommand ("ovso", &oneVsOne);
+  bz_registerCustomSlashCommand ("ovso", this);
 
   // compatibility stuff 
-  if (oneVsOne.isCompat()) {
-    Parameters::iterator it = oneVsOne.gameTypes.find("official"); 
-    if ( it != oneVsOne.gameTypes.end() )
-      bz_registerCustomSlashCommand ((*it).first.c_str(), &oneVsOne);
+  if (isCompat()) {
+    Parameters::iterator it = gameTypes.find("official"); 
+    if ( it != gameTypes.end() )
+      bz_registerCustomSlashCommand ((*it).first.c_str(), this);
   }
  
-  bz_registerEvent(bz_ePlayerJoinEvent, &oneVsOne);
-  bz_registerEvent(bz_ePlayerPartEvent, &oneVsOne);
-  bz_registerEvent(bz_ePlayerDieEvent, &oneVsOne);
-  bz_registerEvent(bz_eSlashCommandEvent,&oneVsOne); 
+  Register(bz_ePlayerJoinEvent);
+  Register(bz_ePlayerPartEvent);
+  Register(bz_ePlayerDieEvent);
 
   bz_debugMessage( DEBUG_LEVEL, "OneVsOne plugin loaded" );
 
-  return 0;
 }
 
-BZF_PLUGIN_CALL int bz_Unload ( void )
+void OneVsOne::Cleanup ( void )
 {  
   
   // compatibility stuff 
-  if (oneVsOne.isCompat()) {
-    Parameters::iterator it = oneVsOne.gameTypes.find("official");
-    if ( it != oneVsOne.gameTypes.end() )
+  if (isCompat()) {
+    Parameters::iterator it = gameTypes.find("official");
+    if ( it != gameTypes.end() )
       bz_removeCustomSlashCommand ((*it).first.c_str());
   }
 
   bz_removeCustomSlashCommand ("ovso");
 
-  bz_removeEvent(bz_ePlayerJoinEvent, &oneVsOne);
-  bz_removeEvent(bz_ePlayerPartEvent, &oneVsOne);
-  bz_removeEvent (bz_ePlayerDieEvent, &oneVsOne);
-  bz_removeEvent(bz_eSlashCommandEvent, &oneVsOne); 
+  Flush();
 
   bz_debugMessage( DEBUG_LEVEL, "OneVsOne plugin unloaded" );
 
-  return 0;
 }
 
 // Local Variables: ***

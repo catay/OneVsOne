@@ -11,7 +11,7 @@
  * class BaseUrlHandler 
 ***/
 
-class BaseUrlHandler : public bz_URLHandler
+class BaseUrlHandler : public bz_BaseURLHandler
 {
   public:
     BaseUrlHandler() 
@@ -26,8 +26,8 @@ class BaseUrlHandler : public bz_URLHandler
 
     ~BaseUrlHandler() { bz_deleteStringList(dataList); };
 
-    virtual void done ( const char* /*URL*/, void * data, unsigned int size, bool complete );
-    virtual void error ( const char* /*URL*/, int /*errorCode*/, const char * /*errorString*/ );
+    virtual void URLDone ( const char* /*URL*/, void * data, unsigned int size, bool complete );
+    virtual void URLError ( const char* /*URL*/, int /*errorCode*/, const char * /*errorString*/ );
     virtual void showDataOK(int playerId);
     virtual void showDataNOK(int playerId);
     virtual void showData(int playerId);
@@ -41,7 +41,7 @@ class BaseUrlHandler : public bz_URLHandler
   protected:
     unsigned int _max_data_size;
     std::vector<int> _playerIds;
-    bzAPIStringList* dataList;
+    bz_APIStringList* dataList;
 };
 
 /*** 

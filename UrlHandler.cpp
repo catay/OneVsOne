@@ -11,7 +11,7 @@ bool replace_v2(std::string& s,const char * orig,const char * rep )
   return retval;
 }
 
-void BaseUrlHandler::done ( const char* /*URL*/, void * data, unsigned int size, bool complete )
+void BaseUrlHandler::URLDone ( const char* /*URL*/, void * data, unsigned int size, bool complete )
 {
   int _playerId = _playerIds[0];
   _playerIds.erase(_playerIds.begin());
@@ -40,7 +40,7 @@ void BaseUrlHandler::done ( const char* /*URL*/, void * data, unsigned int size,
   }
 }
 
-void BaseUrlHandler::error ( const char* /*URL*/, int errorCode, const char * errorString )
+void BaseUrlHandler::URLError ( const char* /*URL*/, int errorCode, const char * errorString )
 {
   int _playerId = _playerIds[0];
   _playerIds.erase(_playerIds.begin());
@@ -92,7 +92,7 @@ bool BaseUrlHandler::setNoNoKNotify(bool notify)
 void PlayerInfo::showDataOK(int playerId)
 { 
   for ( unsigned int i = 1; i < dataList->size(); i++) {
-    bzAPIStringList* playerList = bz_newStringList();
+    bz_APIStringList* playerList = bz_newStringList();
     playerList->tokenize(dataList->get(i).c_str(), "\t", 6, false);
 
     bz_sendTextMessagef ( BZ_SERVER, playerId,"Player info for %s", playerList->get(0).c_str());
@@ -117,7 +117,7 @@ void TopScore::showDataOK(int playerId)
 
   for ( unsigned int i = 1; i < dataList->size(); i++)
   {
-    bzAPIStringList* topScoreList = bz_newStringList();
+    bz_APIStringList* topScoreList = bz_newStringList();
     topScoreList->tokenize(dataList->get(i).c_str(), "\t", 3, false);
 
     bz_sendTextMessagef ( BZ_SERVER, playerId,"%-4s %-32s %5s", topScoreList->get(0).c_str(), 
@@ -137,7 +137,7 @@ void TopZelo::showDataOK(int playerId)
   bz_sendTextMessagef ( BZ_SERVER, playerId,"%-4s %-32s %4s", "---", "------", "----");
 
   for ( unsigned int i = 1; i < dataList->size(); i++) {
-    bzAPIStringList* topZeloList = bz_newStringList();
+    bz_APIStringList* topZeloList = bz_newStringList();
     topZeloList->tokenize(dataList->get(i).c_str(), "\t", 3, false);
 
     bz_sendTextMessagef ( BZ_SERVER, playerId,"%-4s %-32s %-4s", topZeloList->get(0).c_str(), topZeloList->get(1).c_str(),topZeloList->get(2).c_str());
