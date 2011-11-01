@@ -925,6 +925,7 @@ void OneVsOne::Init ( const char* commandLine )
   Register(bz_ePlayerJoinEvent);
   Register(bz_ePlayerPartEvent);
   Register(bz_ePlayerDieEvent);
+  Register(bz_eSlashCommandEvent);
 
   bz_debugMessage( DEBUG_LEVEL, "OneVsOne plugin loaded" );
 
