@@ -1,4 +1,4 @@
-OneVsOne plug-in version 1.0.3  (Dec 15th, 2009)
+OneVsOne plug-in version 2.0.0  (Nov 1st, 2011)
 ------------------------------------------------
 
 Introduction
@@ -284,6 +284,10 @@ league so attractive:
 Changelog:
 ==========
 
+ * OneVsOne 2.0.0 (1 Nov 2011)
+
+   - Update plugin to make it compatible with the BZFlag 2.4.x API
+
  * OneVsOne 1.0.3 (15 Dec 2009)
 
    - To much to name and to lazy to tell :P
@@ -303,8 +307,8 @@ Changelog:
 
    - Fixed a small bug that occured when at the end of a game
      both players shoot eachother before the auto explode happens.
-	 Because of that, a ghost playerid was added to the map. Had
-	 no impact on scores or something else whatsoever.
+	   Because of that, a ghost playerid was added to the map. Had
+	   no impact on scores or something else whatsoever.
 
    - Added some ascii art banners that clearly state when someone
      wins or loses.
