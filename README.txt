@@ -1,4 +1,4 @@
-OneVsOne plug-in version 2.0.0  (Nov 1st, 2011)
+OneVsOne plug-in version 2.0.1  (Jul 6st, 2013)
 ------------------------------------------------
 
 Introduction
@@ -283,6 +283,11 @@ league so attractive:
 
 Changelog:
 ==========
+
+ * OneVsOne 2.0.1 (6 Jul 2013)
+
+   - fixed bzfsAPI incompatibility due to changes upstream
+   - added new fancy style bzfs patch 
 
  * OneVsOne 2.0.0 (1 Nov 2011)
 
