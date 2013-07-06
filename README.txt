@@ -286,7 +286,8 @@ Changelog:
 
  * OneVsOne 2.0.1 (6 Jul 2013)
 
-   - fixed bzfsAPI incompatibility due to changes upstream
+   - fixed bzfsAPI incompatibility due to changes upstream - Thanks ahs3 for
+     discovering and reporting it.
    - added new fancy style bzfs patch 
 
  * OneVsOne 2.0.0 (1 Nov 2011)
