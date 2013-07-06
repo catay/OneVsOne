@@ -11,7 +11,7 @@ bool replace_v2(std::string& s,const char * orig,const char * rep )
   return retval;
 }
 
-void BaseUrlHandler::URLDone ( const char* /*URL*/, void * data, unsigned int size, bool complete )
+void BaseUrlHandler::URLDone ( const char* /*URL*/, const void * data, unsigned int size, bool complete )
 {
   int _playerId = _playerIds[0];
   _playerIds.erase(_playerIds.begin());

@@ -26,7 +26,7 @@ class BaseUrlHandler : public bz_BaseURLHandler
 
     ~BaseUrlHandler() { bz_deleteStringList(dataList); };
 
-    virtual void URLDone ( const char* /*URL*/, void * data, unsigned int size, bool complete );
+    virtual void URLDone ( const char* /*URL*/, const void * data, unsigned int size, bool complete );
     virtual void URLError ( const char* /*URL*/, int /*errorCode*/, const char * /*errorString*/ );
     virtual void showDataOK(int playerId);
     virtual void showDataNOK(int playerId);
