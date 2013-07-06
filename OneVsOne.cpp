@@ -12,7 +12,7 @@
 #include "UrlHandler.h"
 #include "INIParser.h"
 
-#define ONEVSONE "2.0.0"
+#define ONEVSONE "2.0.1"
 
 #define MAX_PLAYERS 2
 
