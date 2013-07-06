@@ -1,8 +1,8 @@
 Index: src/bzfs/CmdLineOptions.cxx
 ===================================================================
---- src/bzfs/CmdLineOptions.cxx	(revision 22210)
+--- src/bzfs/CmdLineOptions.cxx	(revision 22828)
 +++ src/bzfs/CmdLineOptions.cxx	(working copy)
-@@ -72,6 +72,7 @@
+@@ -73,6 +73,7 @@
  "[-disableBots] "
  "[+f {good|<id>}] "
  "[-f {bad|<id>}] "
@@ -10,7 +10,7 @@ Index: src/bzfs/CmdLineOptions.cxx
  "[-fb] "
  "[-filterCallsigns] "
  "[-filterChat] "
-@@ -176,6 +177,7 @@
+@@ -180,6 +181,7 @@
  "\t-disableBots: disallow clients from using autopilot or robots\n"
  "\t+f: always have flag <id> available\n"
  "\t-f: never randomly generate flag <id>\n"
@@ -18,7 +18,7 @@ Index: src/bzfs/CmdLineOptions.cxx
  "\t-fb: allow flags on box buildings\n"
  "\t-filterCallsigns: filter callsigns to disallow inappropriate user names\n"
  "\t-filterChat: filter chat messages\n"
-@@ -705,6 +707,9 @@
+@@ -714,6 +716,9 @@
        checkArgc(1, i, argc, argv[i]);
        storedFlagCounts.push_back(argv[i]);
      }
@@ -30,7 +30,7 @@ Index: src/bzfs/CmdLineOptions.cxx
        options.flagsOnBuildings = true;
 Index: src/bzfs/WorldInfo.h
 ===================================================================
---- src/bzfs/WorldInfo.h	(revision 22210)
+--- src/bzfs/WorldInfo.h	(revision 22828)
 +++ src/bzfs/WorldInfo.h	(working copy)
 @@ -91,6 +91,9 @@
  		     bool horizontal, bool drive = false, bool shoot = false, bool rico = false);
@@ -44,9 +44,9 @@ Index: src/bzfs/WorldInfo.h
    float getMaxWorldHeight() const;
 Index: src/bzfs/WorldInfo.cxx
 ===================================================================
---- src/bzfs/WorldInfo.cxx	(revision 22210)
+--- src/bzfs/WorldInfo.cxx	(revision 22828)
 +++ src/bzfs/WorldInfo.cxx	(working copy)
-@@ -82,7 +82,105 @@
+@@ -84,7 +84,105 @@
    OBSTACLEMGR.addWorldObstacle(wall);
  }
  
@@ -154,19 +154,19 @@ Index: src/bzfs/WorldInfo.cxx
    links.addLink(src, dst);
 Index: src/bzfs/CmdLineOptions.h
 ===================================================================
---- src/bzfs/CmdLineOptions.h	(revision 22210)
+--- src/bzfs/CmdLineOptions.h	(revision 22828)
 +++ src/bzfs/CmdLineOptions.h	(working copy)
-@@ -72,7 +72,7 @@
+@@ -73,7 +73,7 @@
      idlekickthresh(-1.0), timeLimit(0.0f), timeElapsed(0.0f), addedTime(0.0f),
      linearAcceleration(_DEFAULT_LIN_ACCEL), angularAcceleration(_DEFAULT_ANGLE_ACCELL), useGivenPort(false),
-     useFallbackPort(false), randomBoxes(false),
+     useFallbackPort(false), UPnP(false), randomBoxes(false),
 -    randomCTF(false), flagsOnBuildings(false), respawnOnBuildings(false),
 +    randomCTF(false), fancy(false), flagsOnBuildings(false), respawnOnBuildings(false),
      oneGameOnly(false), timeManualStart(false), randomHeights(false),
      useTeleporters(false), teamKillerDies(true), printScore(false),
      publicizeServer(false), replayServer(false), startRecording(false),
-@@ -153,6 +153,7 @@
-   bool			useFallbackPort;
+@@ -155,6 +155,7 @@
+   bool			UPnP;
    bool			randomBoxes;
    bool			randomCTF;
 +  bool      fancy;
@@ -175,7 +175,7 @@ Index: src/bzfs/CmdLineOptions.h
    bool			oneGameOnly;
 Index: src/bzfs/WorldGenerators.cxx
 ===================================================================
---- src/bzfs/WorldGenerators.cxx	(revision 22210)
+--- src/bzfs/WorldGenerators.cxx	(revision 22828)
 +++ src/bzfs/WorldGenerators.cxx	(working copy)
 @@ -77,6 +77,44 @@
  	pyrBase, pyrBase, h);
