@@ -1,8 +1,8 @@
 OneVsOne plug-in version 2.0.0  (Nov 1st, 2011)
-------------------------------------------------
+===
 
 Introduction
-============
+------------
 
  The OneVsOne plug-in is a bzfs plug-in specially created for one of the
  finest BZFlag leagues:
@@ -23,7 +23,7 @@ Introduction
  It is ofcourse always possible to write this from scratch.
 
 License
-=======
+-------
 
 The plug-in is released under the following license:
 
@@ -31,14 +31,37 @@ GNU LESSER GENERAL PUBLIC LICENSE
 Version 2.1, February 1999 
 
 Requirements
-============
+------------
 
 No extra libraries are necessary to get it compiled, it all uses standard stuff.
 
-The plug-in is compatible with the latest stable BZFLag release (2.0.12).
+The plug-in is compatible with the latest development BZFlag release (2.4.3).
+
+Compiling
+---------
+
+1. Check out the 2.4.x BZFlag source code from GitHub, if you do not already have it on your server. If you are still using SVN, it is recommended you switch to using Git because all future development of BZFlag will use Git.
+
+       git clone -b v2_4_x https://github.com/BZFlag-Dev/bzflag-import-3.git bzflag
+
+2. Go into the newly checked out source code and then the plugins directory.
+
+       cd bzflag/plugins
+
+3. Run a git clone of this repository from within the plugins directory. This should have created a new OneVsOne.git directory within the plugins directory.
+
+       git clone -b 2.4_compat https://github.com/catay/OneVsOne.git
+
+4. The latest BZFlag trunk will contain a script called 'addToBuild.sh' and it will allow you to add the plugin to the build system.
+
+       sh addToBuild.sh OneVsOne
+
+5. Instruct the build system to generate a Makefile and then compile and install the plugin.
+
+       cd ..; ./autogen.sh; ./configure; make; make install
 
 Plug-in command Line
-=====================
+--------------------
 
 The plug-in takes a ini based configuration file as a parameter.  In
 case no INI file is provided it falls back to basic mode and all the 
@@ -50,7 +73,7 @@ case no INI file is provided it falls back to basic mode and all the
      -loadplugin /myplug-indir/OneVsOne.so,/myconfigdir/ovso.ini
   
 The INI file
-============
+------------
 
 A little more info about the plug-in and the ini configuration file.
 
@@ -151,7 +174,7 @@ parameters and values :
   reports.
 
 In-game commands
-================
+----------------
 
 The OneVsOne plug-in provides the following in-game commands.
 Commands with (*) are not avaible in basic mode (without INI file).
@@ -199,7 +222,7 @@ Commands with (*) are not avaible in basic mode (without INI file).
 
 
 Other features
-==============
+--------------
 
  > superkill
 
@@ -234,7 +257,7 @@ Other features
 
 
 Todo
-====
+----
 
  > The plug-in probably doesn't work like it should when load/unloading it 
    manually.
@@ -255,8 +278,8 @@ Todo
  > A lot of other stuff I forget.
 
 
-Credits:
-========
+Credits
+-------
 
 To much people to name, I will sure forget people here.
 
@@ -281,8 +304,8 @@ league so attractive:
  http://1vs1.bzflag.net/allplayers.php
 
 
-Changelog:
-==========
+Changelog
+---------
 
  * OneVsOne 2.0.0 (1 Nov 2011)
 
