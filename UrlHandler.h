@@ -8,13 +8,13 @@
 
 
 /***
- * class BaseUrlHandler
+ * class BaseUrlHandler 
 ***/
 
 class BaseUrlHandler : public bz_BaseURLHandler
 {
   public:
-    BaseUrlHandler()
+    BaseUrlHandler() 
     {
       _playerIds.clear();
       // max data size in bytes (1MB)
@@ -26,8 +26,8 @@ class BaseUrlHandler : public bz_BaseURLHandler
 
     ~BaseUrlHandler() { bz_deleteStringList(dataList); };
 
-    virtual void URLDone (const char* URL, const void* data, unsigned int size, bool complete);
-    virtual void URLError (const char* URL, int errorCode, const char *errorString);
+    virtual void URLDone ( const char* /*URL*/, void * data, unsigned int size, bool complete );
+    virtual void URLError ( const char* /*URL*/, int /*errorCode*/, const char * /*errorString*/ );
     virtual void showDataOK(int playerId);
     virtual void showDataNOK(int playerId);
     virtual void showData(int playerId);
@@ -44,7 +44,7 @@ class BaseUrlHandler : public bz_BaseURLHandler
     bz_APIStringList* dataList;
 };
 
-/***
+/*** 
  * Class PlayerInfo
  *The PlayerInfo class handles player info queries
 ***/
@@ -66,7 +66,7 @@ class TopScore : public BaseUrlHandler
     virtual void showDataOK(int playerId);
 };
 
-/***
+/*** 
  * Class TopZelo
  * The TopZelo class handles the topzelo info queries
 ***/
