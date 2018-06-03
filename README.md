@@ -122,8 +122,8 @@ fails , it is handy to have a backup system in place. If we store the info
 also to file we can later mail it to the league site. The mail will be 
 automatically processed and checks will occuer to see if the match already was recorded.
 
-In the examples directory the script
-[report_matches.sh](https://raw.githubusercontent.com/catay/OneVsOne/master/examples/report_matches.sh) 
+In the scripts directory the script
+[report_matches.sh](https://raw.githubusercontent.com/catay/OneVsOne/master/scripts/report_matches.sh) 
 is provided which can be placed in crontab to mail on a daily basis the match
 reports.
 
