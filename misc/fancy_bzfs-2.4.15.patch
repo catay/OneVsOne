@@ -1,0 +1,214 @@
+diff --git a/src/bzfs/CmdLineOptions.cxx b/src/bzfs/CmdLineOptions.cxx
+index 8b55661..43b24d4 100644
+--- a/src/bzfs/CmdLineOptions.cxx
++++ b/src/bzfs/CmdLineOptions.cxx
+@@ -69,6 +69,7 @@ const char *usageString =
+     "[-disableBots] "
+     "[+f {good|<id>}] "
+     "[-f {bad|<id>}] "
++    "[-fancy] "
+     "[-fb] "
+     "[-filterCallsigns] "
+     "[-filterChat] "
+@@ -176,6 +177,7 @@ const char *extraUsageString =
+     "\t-disableBots: disallow clients from using autopilot or robots\n"
+     "\t+f: always have flag <id> available\n"
+     "\t-f: never randomly generate flag <id>\n"
++    "\t-fancy: use random arcs\n"
+     "\t-fb: allow flags on box buildings\n"
+     "\t-filterCallsigns: filter callsigns to disallow inappropriate user names\n"
+     "\t-filterChat: filter chat messages\n"
+@@ -760,6 +762,10 @@ void parse(int argc, char **argv, CmdLineOptions &options, bool fromWorldFile)
+             checkArgc(1, i, argc, argv[i]);
+             storedFlagCounts.push_back(argv[i]);
+         }
++        else if (strcmp(argv[i], "-fancy") == 0) 
++        {
++            options.fancy = true;
++        }
+         else if (strcmp(argv[i], "-fb") == 0)
+         {
+             // flags on buildings
+diff --git a/src/bzfs/CmdLineOptions.h b/src/bzfs/CmdLineOptions.h
+index 2e9edf8..d9938d3 100644
+--- a/src/bzfs/CmdLineOptions.h
++++ b/src/bzfs/CmdLineOptions.h
+@@ -74,7 +74,7 @@ struct CmdLineOptions
+           idlekickthresh(-1.0), timeLimit(0.0f), timeElapsed(0.0f), addedTime(0.0f),
+           linearAcceleration(_DEFAULT_LIN_ACCEL), angularAcceleration(_DEFAULT_ANGLE_ACCELL), useGivenPort(false),
+           UPnP(false), randomBoxes(false),
+-          randomCTF(false), flagsOnBuildings(false), respawnOnBuildings(false),
++          randomCTF(false), fancy(false), flagsOnBuildings(false), respawnOnBuildings(false),
+           oneGameOnly(false), timeManualStart(false), randomHeights(false),
+           useTeleporters(false), teamKillerDies(true), printScore(false),
+           publicizeServer(false), replayServer(false), startRecording(false),
+@@ -158,6 +158,7 @@ struct CmdLineOptions
+     bool          UPnP;
+     bool          randomBoxes;
+     bool          randomCTF;
++    bool          fancy;
+     bool          flagsOnBuildings;
+     bool          respawnOnBuildings;
+     bool          oneGameOnly;
+diff --git a/src/bzfs/WorldGenerators.cxx b/src/bzfs/WorldGenerators.cxx
+index d85cff8..b809d0d 100644
+--- a/src/bzfs/WorldGenerators.cxx
++++ b/src/bzfs/WorldGenerators.cxx
+@@ -79,6 +79,34 @@ WorldInfo *defineRandomWorld()
+                             pyrBase, pyrBase, h);
+     }
+ 
++    if (clOptions->fancy) {
++        // make arcs
++        const int numArcs = int((0.5f + 0.7f * bzfrand()) * actCitySize * actCitySize);
++  
++        for (i = 0; i < numArcs; i++) {
++            myWorld->addArc(worldSize * ((float)bzfrand() - 0.5f),
++            worldSize * ((float)bzfrand() - 0.5f), 0.0f, 15, 15, 15, 24);
++  
++            myWorld->addArc(worldSize * ((float)bzfrand() - 0.5f),
++            worldSize * ((float)bzfrand() - 0.5f), 0.0f, 15, 15, 15, 3);
++  
++            myWorld->addArc(worldSize * ((float)bzfrand() - 0.5f),
++            worldSize * ((float)bzfrand() - 0.5f), 0.0f, 15, 15, 15, 6);
++        }
++  
++        // make cones and spheres
++        const int numCones = int((0.5f + 0.7f * bzfrand()) * actCitySize * actCitySize);
++        float x,y;
++  
++        for (i = 0; i < numCones; i++) {
++            x = worldSize * ((float)bzfrand() - 0.5f);
++            y = worldSize * ((float)bzfrand() - 0.5f);
++  
++            myWorld->addCone(x,y,0.0f, 16);
++            myWorld->addSphere(x + 20,y,20.0f, 4);
++        }
++    }
++
+     if (clOptions->useTeleporters)
+     {
+         // make teleporters
+diff --git a/src/bzfs/WorldInfo.cxx b/src/bzfs/WorldInfo.cxx
+index e03e5ef..09d46c2 100644
+--- a/src/bzfs/WorldInfo.cxx
++++ b/src/bzfs/WorldInfo.cxx
+@@ -84,6 +84,98 @@ void WorldInfo::addWall(float x, float y, float z, float r, float w, float h)
+     OBSTACLEMGR.addWorldObstacle(wall);
+ }
+ 
++void WorldInfo::addArc(float x, float y, float z, float r, float w , float d, int divisions )
++{
++    MeshTransform xform;
++   
++    const float pos[3] = {x, y, z};
++    const float _size[3] = {r, w, d};
++    const float texsize[4] = {-8.0f, -8.0f, -8.0f, -8.0f};
++   
++    const float flipScale[3] = {1.0f, 1.0f, 1.0f};
++    const float flipShift[3] = {0.0f, 0.0f, 0.0f};
++    const float flipShear[3] = {0.0f, 0.0f, 0.0f};
++   
++    xform.addScale(flipScale);
++    xform.addShift(flipShift);
++    xform.addShear(flipShear);
++   
++    BzMaterial materials[6];
++    materials[0].setTexture("roof");
++    materials[1].setTexture("root");
++    materials[2].setTexture("boxwall");
++    materials[3].setTexture("boxwall");
++    materials[4].setTexture("wall");
++    materials[5].setTexture("wall");
++   
++    const BzMaterial* mats[6];
++   
++    for (int i=0; i < 6; i++)
++        mats[i] = MATERIALMGR.addMaterial(&materials[i]);
++   
++    ArcObstacle* arc = new ArcObstacle(xform, pos, _size, 0.0f,360, 1,texsize, true, divisions, mats, -1, false, false, false, true );
++    OBSTACLEMGR.addWorldObstacle(arc);
++}
++
++void WorldInfo::addCone(float x, float y, float z, int divisions)
++{
++    MeshTransform xform;
++    const float pos[3] = {x, y, z};
++    const float _size[3] = {8.0f, 8.0f, 15.0f};
++    const float diffuse[4] = {0.5f, 0.5f, 0.5f, 0.5f};
++    const float texsize[2] = {-4.0f, -4.0f};
++   
++    const float flipScale[3] = {1.0f, 1.0f, 1.0f};
++    const float flipShift[3] = {0.0f, 0.0f, 0.0f};
++    const float flipShear[3] = {0.0f, 0.0f, 0.0f};
++   
++   
++    xform.addScale(flipScale);
++    xform.addShift(flipShift);
++    xform.addShear(flipShear);
++   
++    BzMaterial materials[4];
++  
++    materials[0].setDiffuse(diffuse);
++    materials[1].setDiffuse(diffuse);
++    materials[2].setDiffuse(diffuse);
++    materials[3].setDiffuse(diffuse);
++   
++    const BzMaterial* mats[4];
++    for (int i=0; i < 4; i++)
++        mats[i] = MATERIALMGR.addMaterial(&materials[i]);
++   
++    ConeObstacle* cone = new ConeObstacle(xform, pos, _size, 0.0f,360, texsize, true, divisions, mats, -1, true, false, false, true );
++   
++    OBSTACLEMGR.addWorldObstacle(cone);
++}
++
++void WorldInfo::addSphere(float x, float y, float z , int divisions)
++{
++    MeshTransform xform;
++    const float pos[3] = {x, y, z};
++    const float _size[3] = {10.0f, 10.0f, -10.0f};
++    const float texsize[2] = {-4.0f, -4.0f};
++   
++    const float flipScale[3] = {1.0f, 1.0f, 1.0f};
++    const float flipShift[3] = {1.0f, 1.0f, 1.0f};
++    const float flipShear[3] = {0.0f, 0.0f, 0.0f};
++    xform.addScale(flipScale);
++    xform.addShift(flipShift);
++    xform.addShear(flipShear);
++   
++    BzMaterial materials[2];
++    materials[0].setTexture("tetrawall");
++    materials[1].setTexture("roof");
++   
++    const BzMaterial* mats[2];
++    mats[0] = MATERIALMGR.addMaterial(&materials[0]);
++    mats[1] = MATERIALMGR.addMaterial(&materials[1]);
++   
++    SphereObstacle* sphere = new SphereObstacle(xform, pos, _size, 0.0f, texsize, true, false, divisions, mats, -1, true, false, false, true );
++   
++    OBSTACLEMGR.addWorldObstacle(sphere);
++}
+ 
+ void WorldInfo::addLink(int src, int dst)
+ {
+diff --git a/src/bzfs/WorldInfo.h b/src/bzfs/WorldInfo.h
+index 4298b04..64fe711 100644
+--- a/src/bzfs/WorldInfo.h
++++ b/src/bzfs/WorldInfo.h
+@@ -88,11 +88,15 @@ public:
+     void addPyramid(float x, float y, float z, float r,
+                     float w, float d, float h,
+                     bool drive = false, bool shoot = false, bool rico = false, bool flipZ = false);
++    void addSphere(float x, float y, float z, int divisions);
++    void addArc(float x, float y, float z, float r, float w, float d, int divisions);
++    void addCone(float x, float y, float z, int divisions); 
+     void addTeleporter(float x, float y, float z, float r,
+                        float w, float d, float h, float b,
+                        bool horizontal, bool drive = false, bool shoot = false, bool rico = false);
+     void addBase(const float pos[3], float r, const float size[3],
+                  int color, bool drive = false, bool shoot = false, bool rico = false);
++   
+ 
+     float getWaterLevel() const;
+     float getMaxWorldHeight() const;
