@@ -34,6 +34,11 @@ No extra libraries are necessary to get it compiled, it all uses standard stuff.
 
 The plug-in is compatible with the latest stable BZFLag release (2.4.x).
 
+## Compilation & Installation
+
+Check out the [BZFlag Wiki article](https://wiki.bzflag.org/Plug-ins#For_versions_on_or_after_2.4.3)
+on how to build third-party plugins.
+
 ## Plug-in command Line
 
 The plug-in takes a ini based configuration file as a parameter.  In
