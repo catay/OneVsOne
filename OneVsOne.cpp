@@ -286,7 +286,7 @@ void OneVsOne::registerPlayer(int playerID, bz_APIStringList *params)
       bz_addURLJob(httpUri.c_str(), &registerHandler, registerdata.c_str());
     }
     else
-      bz_sendTextMessagef(BZ_SERVER, playerID, "You must be globally registered and identified to register here");
+      bz_sendTextMessage(BZ_SERVER, playerID, "You must be globally registered and identified to register here");
 
     bz_freePlayerRecord(playerRecord);
   }
@@ -380,19 +380,19 @@ void OneVsOne::setMatch(int playerID, bz_APIStringList *params)
 
       if (playerRecord->team == eObservers)
       {
-        bz_sendTextMessagef(BZ_SERVER, playerID, "Observers obviously can't play matches ;)", (*matchTypeIt).first.c_str());
+        bz_sendTextMessage(BZ_SERVER, playerID, "Observers obviously can't play matches ;-)");
         return;
       }
 
       if (!playerRecord->globalUser)
       {
-        bz_sendTextMessagef(BZ_SERVER, playerID, "You must be registered and identified to play matches");
+        bz_sendTextMessage(BZ_SERVER, playerID, "You must be registered and identified to play matches");
         return;
       }
 
       if (Players[playerID].losses != 0)
       {
-        bz_sendTextMessagef(BZ_SERVER, playerID, "You have to declare the match type BEFORE you start playing");
+        bz_sendTextMessage(BZ_SERVER, playerID, "You have to declare the match type BEFORE you start playing");
         return;
       }
 
@@ -440,8 +440,8 @@ void OneVsOne::unSetMatchAll()
 
   for (; it != Players.end(); it++)
   {
-    bz_sendTextMessagef(BZ_SERVER, (*it).first,
-                        "The match is cancelled because the opponent left. Please rejoin.");
+    bz_sendTextMessage(BZ_SERVER, (*it).first,
+                       "The match is cancelled because the opponent left. Please rejoin.");
     (*it).second.matchType.clear();
   }
 }
@@ -506,12 +506,12 @@ void OneVsOne::setLives(int playerID, bz_APIStringList *params)
         bz_sendTextMessagef(BZ_SERVER, BZ_ALLUSERS, "Life count set to %d by %s.", maxLives, playerRecord->callsign.c_str());
       }
       else
-        bz_sendTextMessagef(BZ_SERVER, playerID, "Life count should be higher then highest player hit count.");
+        bz_sendTextMessage(BZ_SERVER, playerID, "Life count should be higher then highest player hit count.");
 
       bz_freePlayerRecord(playerRecord);
     }
     else
-      bz_sendTextMessagef(BZ_SERVER, playerID, "Life count should be numerical value.");
+      bz_sendTextMessage(BZ_SERVER, playerID, "Life count should be numerical value.");
   }
   else
     showHelp(playerID, params->get(0));
@@ -603,20 +603,20 @@ void OneVsOne::printBanner(int winner, int loser)
 
   if (Players.size() == MAX_PLAYERS)
   {
-    bz_sendTextMessagef(BZ_SERVER, winner, "                              .__ ");
-    bz_sendTextMessagef(BZ_SERVER, winner, " ___.__. ____  __ __  __  _  _|__| ____ ");
-    bz_sendTextMessagef(BZ_SERVER, winner, "<   |  |/  _ \\|  |  \\ \\ \\/ \\/ /  |/    \\ ");
-    bz_sendTextMessagef(BZ_SERVER, winner, " \\___  (  <_> )  |  /  \\     /|  |   |  \\ ");
-    bz_sendTextMessagef(BZ_SERVER, winner, " / ____|\\____/|____/    \\/\\_/ |__|___|  / ");
-    bz_sendTextMessagef(BZ_SERVER, winner, " \\/                                   \\/ ");
+    bz_sendTextMessage(BZ_SERVER, winner, "                              .__ ");
+    bz_sendTextMessage(BZ_SERVER, winner, " ___.__. ____  __ __  __  _  _|__| ____ ");
+    bz_sendTextMessage(BZ_SERVER, winner, "<   |  |/  _ \\|  |  \\ \\ \\/ \\/ /  |/    \\ ");
+    bz_sendTextMessage(BZ_SERVER, winner, " \\___  (  <_> )  |  /  \\     /|  |   |  \\ ");
+    bz_sendTextMessage(BZ_SERVER, winner, " / ____|\\____/|____/    \\/\\_/ |__|___|  / ");
+    bz_sendTextMessage(BZ_SERVER, winner, " \\/                                   \\/ ");
   }
 
-  bz_sendTextMessagef(BZ_SERVER, loser, "                      .__");
-  bz_sendTextMessagef(BZ_SERVER, loser, " ___.__. ____  __ __  |  |   ____  ______ ____");
-  bz_sendTextMessagef(BZ_SERVER, loser, "<   |  |/  _ \\|  |  \\ |  |  /  _ \\/  ___// __ \\ ");
-  bz_sendTextMessagef(BZ_SERVER, loser, " \\___  (  <_> )  |  / |  |_(  <_> )___ \\\\  ___/");
-  bz_sendTextMessagef(BZ_SERVER, loser, " / ____|\\____/|____/  |____/\\____/____  >\\___  >");
-  bz_sendTextMessagef(BZ_SERVER, loser, " \\/                                   \\/     \\/");
+  bz_sendTextMessage(BZ_SERVER, loser, "                      .__");
+  bz_sendTextMessage(BZ_SERVER, loser, " ___.__. ____  __ __  |  |   ____  ______ ____");
+  bz_sendTextMessage(BZ_SERVER, loser, "<   |  |/  _ \\|  |  \\ |  |  /  _ \\/  ___// __ \\ ");
+  bz_sendTextMessage(BZ_SERVER, loser, " \\___  (  <_> )  |  / |  |_(  <_> )___ \\\\  ___/");
+  bz_sendTextMessage(BZ_SERVER, loser, " / ____|\\____/|____/  |____/\\____/____  >\\___  >");
+  bz_sendTextMessage(BZ_SERVER, loser, " \\/                                   \\/     \\/");
 }
 
 void OneVsOne::addPlayer(int playerId, const std::string callsign)
@@ -876,8 +876,8 @@ void OneVsOne::Event(bz_EventData *eventData)
     {
       if (isMatch())
       {
-        bz_sendTextMessagef(BZ_SERVER, slashCommandData->from,
-                            "You can't perform /superkill when a match is in progress");
+        bz_sendTextMessage(BZ_SERVER, slashCommandData->from,
+                           "You can't perform /superkill when a match is in progress");
       }
       else
         bz_superkill();
@@ -893,8 +893,8 @@ bool OneVsOne::SlashCommand(int playerID, bz_ApiString cmd, bz_ApiString msg, bz
 
   if (cmd == "official")
   {
-    bz_sendTextMessagef(BZ_SERVER, playerID,
-                        "The '/official' command is DEPRECATED, use '/ovso match official' from now on.");
+    bz_sendTextMessage(BZ_SERVER, playerID,
+                       "The '/official' command is DEPRECATED, use '/ovso match official' from now on.");
     cmd = "ovso";
     cmdParams->push_back(std::string("match"));
     cmdParams->push_back(std::string("official"));
