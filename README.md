@@ -39,6 +39,34 @@ The plug-in is compatible with the latest stable BZFLag release (2.4.x).
 Check out the [BZFlag Wiki article](https://wiki.bzflag.org/Plug-ins#For_versions_on_or_after_2.4.3)
 on how to build third-party plugins.
 
+Get the latest BZFlag source code from GitHub.
+
+```bash
+$ git clone git@github.com:BZFlag-Dev/bzflag.git
+```
+
+Clone the latest OneVsOne plugin source code below the BZFlag plugin directory.
+
+```bash
+$ cd bzflag/plugins
+$ git clone git@github.com:catay/OneVsOne.git
+$ cd ..
+```
+
+Configure and build BZFlag server and custom plugin.
+
+```bash
+$ ./autogen.sh
+$ ./configure --disable-client --enable-custom-plugins=OneVsOne
+$ make
+```
+
+If the build is succesfull the plugin can be found under:
+
+```bash
+$ ls -l plugins/OneVsOne/.libs/OneVsOne.so
+```
+
 ## Plug-in command Line
 
 The plug-in takes a ini based configuration file as a parameter.  In
