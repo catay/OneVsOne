@@ -9,8 +9,8 @@
 #include <vector>
 
 #include "bzfsAPI.h"
+#include "plugin_utils.h"
 #include "UrlHandler.h"
-#include "INIParser.h"
 
 #define ONEVSONE "2.0.1"
 
@@ -19,6 +19,7 @@
 #define DEBUG_TAG "DEBUG::OneVsOne PLUGIN::" 
 #define DEBUG_LEVEL 2
 
+typedef std::map<std::string,std::string> Parameters;
 
 typedef struct {
 	int losses;
@@ -168,59 +169,73 @@ OneVsOne::OneVsOne()
 
 bool OneVsOne::readConfig(std::string fileName)
 {
-  INIParser config = INIParser(fileName.c_str());
-  int status = config.parse();
 
-  if (status > 0 ) {
-    bz_debugMessage(DEBUG_LEVEL,"OneVsOne plugin loading FAILED");
-    bz_debugMessagef(DEBUG_LEVEL,"Error parsing config file at line %d", status);
-    return false;
+//  std::cout << "!!!! DEBUGGING !!!!!: " << fileName << std::endl;
+    PluginConfig config = PluginConfig(fileName);
+
+ // std::cout << config.item("general", "max_lives");
+
+ // std::vector<std::string> sections = config.getSections();
+
+ //   std::vector<std::string>::iterator it = sections.begin();
+
+ //   for( ; it != sections.end(); it++ ) {
+ //     std::cout << "DEBUG section: " << *it << std::endl; 
+ //   }
+
+ // std::cout << "FAIL: " << config.item("general", "max_lives").size() << std::endl;
+ // std::cout << "FAIL: " << config.item("general", "max").size() << std::endl;
+
+  // general section
+
+  if ( config.item("general", "max_lives").size() != 0 ) {
+    maxLives = atoi(config.item("general", "max_lives").c_str());
   }
 
-  if (config.isSection("general") ) {
+  if ( config.item("general", "style").size() != 0 ) {
+    gameStyle = config.item("general","style");
+  }
 
-    if ( config.isValue("general","max_lives") ) 
-	maxLives = atoi(config.getValue("general", "max_lives").c_str());
-
-    if ( config.isValue("general","style") )
-      gameStyle = config.getValue("general","style");
-
-    if ( config.isValue("general","compatibility") ) {
-	if ( config.getValue("general", "compatibility") == "false" ) {
+	if ( config.item("general", "compatibility") == "false" ) {
 	  compatibility = false;
 	}
-    }
-  }
+
+  // command section
 
   gameTypes.clear();
+  std::vector<std::pair<std::string, std::string>> commands = config.getSectionItems("commands");
+  std::vector<std::pair<std::string, std::string>>::iterator it = commands.begin();
 
-  if (config.isSection("commands") )
-    gameTypes = config.getParameters("commands");
-
-  if (config.isSection("communication") ) {
-    if ( config.isValue("communication","httpuri") ) {
-      httpUri = config.getValue("communication", "httpuri");
-      isComm = true;
-
-      if ( config.isValue("communication", "refresh_interval") ) {
-	refreshInterval = atoi(config.getValue("communication", "refresh_interval").c_str());
-      }
-
-      if ( config.isValue("communication","enable_motd") ) {
-	if ( config.getValue("communication", "enable_motd") == "true" ) {
-	  isMotd = true;
-	}
-      }
-
-      if ( config.getValue("communication", "enable_welcome") == "true" ) {
-	isWelcome = true;
-      }
-    }
+  for( ; it != commands.end(); it++ ) {
+    gameTypes[(*it).first] = (*it).second;
   }
 
-  if (config.isSection("logging") ) {
-    if ( config.isValue("logging","logfile") )
-      logFile = config.getValue("logging", "logfile");
+  // communication section
+
+  if ( config.item("communication", "style").size() != 0 ) {
+    httpUri = config.item("communication", "httpuri");
+    isComm = true;
+  }
+
+  if ( config.item("communication", "style").size() != 0 ) {
+    httpUri = config.item("communication", "httpuri");
+    isComm = true;
+  }
+
+  if ( config.item("communication", "refresh_interval").size() != 0 ) {
+    refreshInterval = atoi(config.item("communication", "refresh_interval").c_str());
+  }
+
+	if ( config.item("communication", "enable_motd") == "true" ) {
+	  isMotd = true;
+	}
+
+  if ( config.item("communication", "enable_welcome") == "true" ) {
+	  isWelcome = true;
+  }
+
+  if ( config.item("logging", "logfile").size() != 0 ) {
+      logFile = config.item("logging", "logfile");
   }
 
   return true;
@@ -910,9 +925,7 @@ void OneVsOne::Init ( const char* commandLine )
   std::string cmdLine = commandLine;
 
   if (cmdLine.size())
-    if ( ! readConfig(cmdLine) )
-      bz_debugMessage( DEBUG_LEVEL, "OneVsOne reading config file failed .. falling back to defaults" );
-
+    readConfig(cmdLine);
  
   bz_registerCustomSlashCommand ("ovso", this);
 
