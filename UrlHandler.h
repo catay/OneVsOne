@@ -33,7 +33,7 @@ class BaseUrlHandler : public bz_BaseURLHandler
     virtual void showData(int playerId);
     void setPlayerId(int playerId);
     bool is_valid_status(const std::string& data);
-    bool setNoNoKNotify(bool notify);
+    void setNoNoKNotify(bool notify);
 
   private:
     bool noNOKNotify;

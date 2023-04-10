@@ -13,30 +13,32 @@ bool replace_v2(std::string& s,const char * orig,const char * rep )
 
 void BaseUrlHandler::URLDone ( const char* /*URL*/, const void * data, unsigned int size, bool complete )
 {
-  int _playerId = _playerIds[0];
-  _playerIds.erase(_playerIds.begin());
+  if (complete) { 
+    int _playerId = _playerIds[0];
+    _playerIds.erase(_playerIds.begin());
 
-  if ( size > 1 && size < _max_data_size ) {
-    std::string _data; 
-    _data.append((char*)data, size);
+    if ( size > 1 && size < _max_data_size ) {
+      std::string _data; 
+      _data.append((const char*)data, size);
 
-    if (is_valid_status(_data))	{
-      replace_v2(_data,"\r\n","\n");
-      replace_v2(_data,"\r","\n");
-      replace_v2(_data,"\n\n","\n \n");
-      //dataList->tokenize(_data.c_str(), "\r\n");
-      dataList->tokenize(_data.c_str(), "\n");
-      showData(_playerId);
+      if (is_valid_status(_data))	{
+        replace_v2(_data,"\r\n","\n");
+        replace_v2(_data,"\r","\n");
+        replace_v2(_data,"\n\n","\n \n");
+        //dataList->tokenize(_data.c_str(), "\r\n");
+        dataList->tokenize(_data.c_str(), "\n");
+        showData(_playerId);
 
+      }
+      else {
+        bz_sendTextMessage (BZ_SERVER, _playerId,"No valid data was received !");
+        bz_sendTextMessage (BZ_SERVER, _playerId,"This points to a bug or misuse. Please contact the server admin.");
+      }
     }
     else {
-      bz_sendTextMessage (BZ_SERVER, _playerId,"No valid data was received !");
+      bz_sendTextMessagef (BZ_SERVER, _playerId,"The received data size (%d) exceede the limit (%d)", size, _max_data_size);
       bz_sendTextMessage (BZ_SERVER, _playerId,"This points to a bug or misuse. Please contact the server admin.");
     }
-  }
-  else {
-    bz_sendTextMessagef (BZ_SERVER, _playerId,"The received data size (%d) exceede the limit (%d)", size, _max_data_size);
-    bz_sendTextMessage (BZ_SERVER, _playerId,"This points to a bug or misuse. Please contact the server admin.");
   }
 }
 
@@ -84,7 +86,7 @@ bool BaseUrlHandler::is_valid_status(const std::string& data)
   return false;
 }
 
-bool BaseUrlHandler::setNoNoKNotify(bool notify)
+void BaseUrlHandler::setNoNoKNotify(bool notify)
 {
  noNOKNotify = notify;
 }
