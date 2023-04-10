@@ -3,8 +3,6 @@ lib_LTLIBRARIES = OneVsOne.la
 OneVsOne_la_SOURCES = \
 	UrlHandler.h \
 	UrlHandler.cpp \
-	INIParser.h \
-	INIParser.cpp \
 	OneVsOne.cpp
 OneVsOne_la_CPPFLAGS= -I$(top_srcdir)/include -I$(top_srcdir)/plugins/plugin_utils
 OneVsOne_la_LDFLAGS = -module -avoid-version -shared
