@@ -223,6 +223,7 @@ bool OneVsOne::readConfig(std::string fileName)
       logFile = config.getValue("logging", "logfile");
   }
 
+  return true;
 }
 
 bool OneVsOne::isCompat()
@@ -242,13 +243,13 @@ bool OneVsOne::isMatch()
 
   std::map<int,OneVsOnePlayer>::iterator it = Players.begin();
 
-  std::string matchType = (*it).second.matchType;
+  std::string matchTypeP = (*it).second.matchType;
 
-  if ( matchType.size() == 0)
+  if ( matchTypeP.size() == 0)
     return false;
 
   for( ; it != Players.end(); it++ ) {
-    if ( (*it).second.matchType != matchType ) {
+    if ( (*it).second.matchType != matchTypeP ) {
       return false;
     }
   }
@@ -675,7 +676,7 @@ void OneVsOne::logRecordMatch(std::string mType, int winner, int loser)
   int duration = (int) (bz_getCurrentTime() - startTime);
 		  
   char scores[200];
-  char match_date[20];
+  char match_date[100];
 
   std::string reportData;
 
