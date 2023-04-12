@@ -196,13 +196,7 @@ bool OneVsOne::readConfig(std::string fileName)
 
   // communication section
 
-  if (config.item("communication", "style").size() != 0)
-  {
-    httpUri = config.item("communication", "httpuri");
-    isComm = true;
-  }
-
-  if (config.item("communication", "style").size() != 0)
+  if (config.item("communication", "httpuri").size() != 0)
   {
     httpUri = config.item("communication", "httpuri");
     isComm = true;
