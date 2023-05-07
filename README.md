@@ -53,6 +53,13 @@ $ git clone git@github.com:catay/OneVsOne.git
 $ cd ..
 ```
 
+**Optionally**, apply the 'fancy' patch to the BZFlag source tree.
+Make sure you are in the root of the source tree.
+
+```bash
+$ patch -p1 < plugins/OneVsOne/misc/fancy-2.4.patch
+```
+
 Configure and build BZFlag server and custom plugin.
 
 ```bash
