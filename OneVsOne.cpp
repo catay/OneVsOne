@@ -12,7 +12,7 @@
 #include "plugin_utils.h"
 #include "UrlHandler.h"
 
-#define ONEVSONE "2.0.1"
+#define ONEVSONE "2.1.0"
 
 #define MAX_PLAYERS 2
 
