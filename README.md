@@ -21,13 +21,6 @@ That code is independenlty  developed by strayer ([BZBB profile](https://forums.
 To use the full feature set of the plug-in the league code is mandatory.
 It is ofcourse always possible to write this from scratch.
 
-## License
-
-The plug-in is released under the following license:
-
-GNU LESSER GENERAL PUBLIC LICENSE
-Version 2.1, February 1999 
-
 ## Requirements
 
 No extra libraries are necessary to get it compiled, it all uses standard stuff.
