@@ -87,14 +87,13 @@ Example:
 
 A little more info about the plug-in and the ini configuration file.
 
-Example INI files for different styles can be found in the examples directory.
+Example BZFlag server and plugin INI configuration files for different styles can be found in the examples directory.
 
- * [hix style](https://raw.githubusercontent.com/catay/OneVsOne/master/examples/hix.ini)
- * [classic style](https://raw.githubusercontent.com/catay/OneVsOne/master/examples/classic.ini)
- * [fancy](https://raw.githubusercontent.com/catay/OneVsOne/master/examples/fancy.ini)
+ * [classic style](https://raw.githubusercontent.com/catay/OneVsOne/master/examples/classic/)
+ * [fancy](https://raw.githubusercontent.com/catay/OneVsOne/master/examples/fancy/)
+ * [hix style](https://raw.githubusercontent.com/catay/OneVsOne/master/examples/hix/)
 
-The main purpose of the ini file is to make the plug-in more customizable and 
-to avoid hardcoded ugliness.
+The main purpose of the ini file is to allow custom configuration settings.
 
 A INI configuration file has 4 sections which each hold different parameters
 and values :
