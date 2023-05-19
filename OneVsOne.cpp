@@ -109,6 +109,7 @@ private:
   void handleMotd(int p, bz_APIStringList *);
   void setLives(int p, bz_APIStringList *);
   void showHelp(int p, bz_ApiString action = "all");
+  void showVersion(int p);
 
   void printScore(void);
   void printBanner(int winner, int loser);
@@ -511,6 +512,11 @@ void OneVsOne::setLives(int playerID, bz_APIStringList *params)
     showHelp(playerID, params->get(0));
 }
 
+void OneVsOne::showVersion(int playerID)
+{
+  bz_sendTextMessagef(BZ_SERVER, playerID, "OneVsOne plugin version: %s.", ONEVSONE);
+}
+
 void OneVsOne::showHelp(int playerID, bz_ApiString action)
 {
   action.tolower();
@@ -539,6 +545,7 @@ void OneVsOne::showHelp(int playerID, bz_ApiString action)
     bz_sendTextMessage(BZ_SERVER, playerID, "");
     bz_sendTextMessage(BZ_SERVER, playerID, "action:");
     bz_sendTextMessage(BZ_SERVER, playerID, "");
+    bz_sendTextMessage(BZ_SERVER, playerID, " version show plugin version");
     bz_sendTextMessage(BZ_SERVER, playerID, " help [<action>] 1vs1 help");
     bz_sendTextMessage(BZ_SERVER, playerID, " match [<match type>] start a match of a certain type");
 
@@ -902,6 +909,12 @@ bool OneVsOne::SlashCommand(int playerID, bz_ApiString cmd, bz_ApiString msg, bz
     {
       bz_ApiString action = cmdParams->get(0);
       action.tolower();
+
+      if (action == "version")
+      {
+        showVersion(playerID);
+        return true;
+      }
 
       if (action == "help")
       {
