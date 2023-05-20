@@ -313,6 +313,25 @@ for making this league so attractive.
 
 ## Changelog:
 
+* OneVsOne 2.1.0 (20 May 2023)
+
+  - Fix compiler warnings and errors.
+  - Switch to BZFlag build-in INI file parser.
+  - Fix overall formatting of the code.
+  - Update and cleanup the README.
+  - Include BZFLag server configurations for different gamestyles.
+  - Add in-game `/ovso version` command.
+
+* OneVsOne 2.0.3 (25 May 2019)
+
+  - Add extra build dependencies (Allejo).
+
+* OneVsOne 2.0.2 (4 June 2018)
+
+  - Convert TXT files to Markdown.
+  - Integrate plug-in build with BZFlag plug-in build system.
+  - Update build and install instructions.
+
 * OneVsOne 2.0.1 (6 Jul 2013)
 
   - fixed bzfsAPI incompatibility due to changes upstream - Thanks ahs3 for
