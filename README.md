@@ -164,6 +164,12 @@ reports.
 The OneVsOne plug-in provides the following in-game commands.
 Commands with (!) are not avaible in basic mode (without INI file).
 
+Display the plug-in version.
+
+```
+/ovso version
+```
+
 Lists a brief help section about all the available actions.
 
 ```
