@@ -30,7 +30,7 @@ The plug-in is compatible with the latest stable BZFLag release (2.4.x).
 ## Compilation & Installation
 
 Check out the [BZFlag Wiki article](https://wiki.bzflag.org/Plug-ins#For_versions_on_or_after_2.4.3)
-on how to build third-party plugins.
+on how to build third-party plug-ins.
 
 Get the latest BZFlag source code from GitHub.
 
@@ -38,7 +38,7 @@ Get the latest BZFlag source code from GitHub.
 $ git clone git@github.com:BZFlag-Dev/bzflag.git
 ```
 
-Clone the latest OneVsOne plugin source code below the BZFlag plugin directory.
+Clone the latest OneVsOne plug-in source code below the BZFlag plugins directory.
 
 ```bash
 $ cd bzflag/plugins
@@ -53,7 +53,7 @@ Make sure you are in the root of the source tree.
 $ patch -p1 < plugins/OneVsOne/misc/fancy-2.4.patch
 ```
 
-Configure and build BZFlag server and custom plugin.
+Configure and build BZFlag server and custom plug-in.
 
 ```bash
 $ ./autogen.sh
@@ -61,7 +61,7 @@ $ ./configure --disable-client --enable-custom-plugins=OneVsOne
 $ make
 ```
 
-If the build is succesfull the plugin can be found under:
+If the build is succesfull the plug-in can be found under:
 
 ```bash
 $ ls -l plugins/OneVsOne/.libs/OneVsOne.so
@@ -87,7 +87,7 @@ Example:
 
 A little more info about the plug-in and the ini configuration file.
 
-Example BZFlag server and plugin INI configuration files for different styles can be found in the examples directory.
+Example BZFlag server and plug-in INI configuration files for different styles can be found in the examples directory.
 
  * [classic style](https://github.com/catay/OneVsOne/tree/maint/examples/classic)
  * [fancy](https://github.com/catay/OneVsOne/tree/maint/examples/fancy)
@@ -321,7 +321,7 @@ for making this league so attractive.
 
 * OneVsOne 2.0.0 (1 Nov 2011)
 
-  - Update plugin to make it compatible with the BZFlag 2.4.x API
+  - Update plug-in to make it compatible with the BZFlag 2.4.x API
 
 * OneVsOne 1.0.3 (15 Dec 2009)
 
