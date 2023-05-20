@@ -33,3 +33,8 @@
 
 # Misc
 .ruby-version
+.libs
+.deps
+.vscode
+Makefile
+Makefile.in

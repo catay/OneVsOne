@@ -21,13 +21,6 @@ That code is independenlty  developed by strayer ([BZBB profile](https://forums.
 To use the full feature set of the plug-in the league code is mandatory.
 It is ofcourse always possible to write this from scratch.
 
-## License
-
-The plug-in is released under the following license:
-
-GNU LESSER GENERAL PUBLIC LICENSE
-Version 2.1, February 1999 
-
 ## Requirements
 
 No extra libraries are necessary to get it compiled, it all uses standard stuff.
@@ -37,7 +30,42 @@ The plug-in is compatible with the latest stable BZFLag release (2.4.x).
 ## Compilation & Installation
 
 Check out the [BZFlag Wiki article](https://wiki.bzflag.org/Plug-ins#For_versions_on_or_after_2.4.3)
-on how to build third-party plugins.
+on how to build third-party plug-ins.
+
+Get the latest BZFlag source code from GitHub.
+
+```bash
+$ git clone git@github.com:BZFlag-Dev/bzflag.git
+```
+
+Clone the latest OneVsOne plug-in source code below the BZFlag plugins directory.
+
+```bash
+$ cd bzflag/plugins
+$ git clone git@github.com:catay/OneVsOne.git
+$ cd ..
+```
+
+**Optionally**, apply the 'fancy' patch to the BZFlag source tree.
+Make sure you are in the root of the source tree.
+
+```bash
+$ patch -p1 < plugins/OneVsOne/misc/fancy-2.4.patch
+```
+
+Configure and build BZFlag server and custom plug-in.
+
+```bash
+$ ./autogen.sh
+$ ./configure --disable-client --enable-custom-plugins=OneVsOne
+$ make
+```
+
+If the build is succesfull the plug-in can be found under:
+
+```bash
+$ ls -l plugins/OneVsOne/.libs/OneVsOne.so
+```
 
 ## Plug-in command Line
 
@@ -59,14 +87,13 @@ Example:
 
 A little more info about the plug-in and the ini configuration file.
 
-Example INI files for different styles can be found in the examples directory.
+Example BZFlag server and plug-in INI configuration files for different styles can be found in the examples directory.
 
- * [hix style](https://raw.githubusercontent.com/catay/OneVsOne/master/examples/hix.ini)
- * [classic style](https://raw.githubusercontent.com/catay/OneVsOne/master/examples/classic.ini)
- * [fancy](https://raw.githubusercontent.com/catay/OneVsOne/master/examples/fancy.ini)
+ * [classic style](https://github.com/catay/OneVsOne/tree/maint/examples/classic)
+ * [fancy](https://github.com/catay/OneVsOne/tree/maint/examples/fancy)
+ * [hix style](https://github.com/catay/OneVsOne/tree/maint/examples/hix)
 
-The main purpose of the ini file is to make the plug-in more customizable and 
-to avoid hardcoded ugliness.
+The main purpose of the ini file is to allow custom configuration settings.
 
 A INI configuration file has 4 sections which each hold different parameters
 and values :
@@ -136,6 +163,12 @@ reports.
 
 The OneVsOne plug-in provides the following in-game commands.
 Commands with (!) are not avaible in basic mode (without INI file).
+
+Display the plug-in version.
+
+```
+/ovso version
+```
 
 Lists a brief help section about all the available actions.
 
@@ -280,6 +313,25 @@ for making this league so attractive.
 
 ## Changelog:
 
+* OneVsOne 2.1.0 (20 May 2023)
+
+  - Fix compiler warnings and errors.
+  - Switch to BZFlag build-in INI file parser.
+  - Fix overall formatting of the code.
+  - Update and cleanup the README.
+  - Include BZFLag server configurations for different gamestyles.
+  - Add in-game `/ovso version` command.
+
+* OneVsOne 2.0.3 (25 May 2019)
+
+  - Add extra build dependencies (Allejo).
+
+* OneVsOne 2.0.2 (4 June 2018)
+
+  - Convert TXT files to Markdown.
+  - Integrate plug-in build with BZFlag plug-in build system.
+  - Update build and install instructions.
+
 * OneVsOne 2.0.1 (6 Jul 2013)
 
   - fixed bzfsAPI incompatibility due to changes upstream - Thanks ahs3 for
@@ -288,7 +340,7 @@ for making this league so attractive.
 
 * OneVsOne 2.0.0 (1 Nov 2011)
 
-  - Update plugin to make it compatible with the BZFlag 2.4.x API
+  - Update plug-in to make it compatible with the BZFlag 2.4.x API
 
 * OneVsOne 1.0.3 (15 Dec 2009)
 
