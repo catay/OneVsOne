@@ -67,6 +67,11 @@ If the build is succesfull the plug-in can be found under:
 $ ls -l plugins/OneVsOne/.libs/OneVsOne.so
 ```
 
+## Hosting a League Server
+
+For the full server setup requirements, supported styles, group database
+permissions, and pre-launch checklist, see [HOSTING.md](HOSTING.md).
+
 ## Plug-in command Line
 
 The plug-in takes a ini based configuration file as a parameter.  In
@@ -89,9 +94,9 @@ A little more info about the plug-in and the ini configuration file.
 
 Example BZFlag server and plug-in INI configuration files for different styles can be found in the examples directory.
 
- * [classic style](https://github.com/catay/OneVsOne/tree/maint/examples/classic)
- * [fancy](https://github.com/catay/OneVsOne/tree/maint/examples/fancy)
- * [hix style](https://github.com/catay/OneVsOne/tree/maint/examples/hix)
+ * [classic style](https://github.com/catay/OneVsOne/tree/master/examples/classic)
+ * [fancy](https://github.com/catay/OneVsOne/tree/master/examples/fancy)
+ * [hix style](https://github.com/catay/OneVsOne/tree/master/examples/hix)
 
 The main purpose of the ini file is to allow custom configuration settings.
 
