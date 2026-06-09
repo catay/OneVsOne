@@ -211,7 +211,8 @@ before using it.
 
 Official matches are also recorded when `-recdir` is configured and writable.
 Do not configure `-recbuf`; the OneVsOne plug-in starts and stops the recording
-buffer when an official match starts and ends.
+buffer when an official match starts and ends. The average file size per
+recording is around 450 kilobytes.
 
 ## Pre-Launch Checklist
 
